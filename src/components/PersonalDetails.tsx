@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PersonalInfo } from "@/utils/cvUtils";
 import { toast } from "sonner";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format, parseISO } from "date-fns";
 
 interface PersonalDetailsProps {
   personalInfo: PersonalInfo;
@@ -12,8 +14,22 @@ interface PersonalDetailsProps {
 }
 
 const PersonalDetails = ({ personalInfo, onChange }: PersonalDetailsProps) => {
+  const [dobDate, setDobDate] = useState<Date | undefined>(
+    personalInfo.dateOfBirth ? parseISO(personalInfo.dateOfBirth) : undefined
+  );
+
   const handleChange = (field: keyof PersonalInfo, value: string) => {
     onChange({ [field]: value });
+  };
+
+  // Update the date of birth when the DatePicker value changes
+  const handleDateChange = (date: Date | undefined) => {
+    setDobDate(date);
+    if (date) {
+      // Format the date as ISO string for storage
+      const formattedDate = format(date, "yyyy-MM-dd");
+      onChange({ dateOfBirth: formattedDate });
+    }
   };
 
   useEffect(() => {
@@ -62,26 +78,12 @@ const PersonalDetails = ({ personalInfo, onChange }: PersonalDetailsProps) => {
           
           <div className="space-y-2">
             <Label htmlFor="dateOfBirth" className="text-sm font-medium">
-              Date of Birth (DD.MM.YYYY)
+              Date of Birth
             </Label>
-            <Input
-              id="dateOfBirth"
-              value={personalInfo.dateOfBirth}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Allow typing by updating the value immediately
-                handleChange("dateOfBirth", value);
-                
-                // If the value is complete (has the expected length), validate it
-                if (value.length === 10) {
-                  const dateFormatRegex = /^(0[1-9]|[12]\d|3[01])\.(0[1-9]|1[0-2])\.(19|20)\d{2}$/;
-                  if (!dateFormatRegex.test(value)) {
-                    toast.error("Please use the format DD.MM.YYYY (e.g., 01.01.2000)");
-                  }
-                }
-              }}
-              className="transition-all focus:ring-2 focus:ring-primary/20"
-              placeholder="Example: 01.01.2000"
+            <DatePicker 
+              date={dobDate}
+              setDate={handleDateChange}
+              placeholder="DD/MM/YYYY"
             />
           </div>
           

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { TimelineEntry as TimelineEntryType, formatDateForDisplay } from "@/utils/cvUtils";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -10,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Pencil, Trash2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MonthYearPicker } from "@/components/ui/month-year-picker";
+import { format, parseISO } from "date-fns";
 
 interface TimelineEntryProps {
   entry: TimelineEntryType;
@@ -30,10 +31,18 @@ const TimelineEntry = ({
 }: TimelineEntryProps) => {
   const [editedEntry, setEditedEntry] = useState<TimelineEntryType>(entry);
   const [isPresent, setIsPresent] = useState(entry.endDate === "present");
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    entry.startDate ? parseISO(entry.startDate) : undefined
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    entry.endDate && entry.endDate !== "present" ? parseISO(entry.endDate) : undefined
+  );
 
   useEffect(() => {
     setEditedEntry(entry);
     setIsPresent(entry.endDate === "present");
+    setStartDate(entry.startDate ? parseISO(entry.startDate) : undefined);
+    setEndDate(entry.endDate && entry.endDate !== "present" ? parseISO(entry.endDate) : undefined);
   }, [entry, isEditing]);
 
   const handleChange = (field: keyof TimelineEntryType, value: string) => {
@@ -44,14 +53,31 @@ const TimelineEntry = ({
     setEditedEntry(prev => ({ ...prev, type: value as TimelineEntryType["type"] }));
   };
 
+  const handleStartDateChange = (date: Date | undefined) => {
+    setStartDate(date);
+    if (date) {
+      const formattedDate = format(date, "yyyy-MM");
+      handleChange("startDate", formattedDate);
+    }
+  };
+
+  const handleEndDateChange = (date: Date | undefined) => {
+    setEndDate(date);
+    if (date) {
+      const formattedDate = format(date, "yyyy-MM");
+      handleChange("endDate", formattedDate);
+    }
+  };
+
   const handlePresentToggle = (checked: boolean) => {
     setIsPresent(checked);
     if (checked) {
+      setEndDate(undefined);
       setEditedEntry(prev => ({ ...prev, endDate: "present" }));
     } else {
-      // Set to current month/year
       const today = new Date();
-      const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      setEndDate(today);
+      const formattedDate = format(today, "yyyy-MM");
       setEditedEntry(prev => ({ ...prev, endDate: formattedDate }));
     }
   };
@@ -108,7 +134,7 @@ const TimelineEntry = ({
               />
             </div>
             
-            <div className="space-y-2 mt-4">
+            {/* <div className="space-y-2 mt-4">
               <Label htmlFor="country">Country</Label>
               <Input
                 id="country"
@@ -116,38 +142,24 @@ const TimelineEntry = ({
                 onChange={(e) => handleChange("country", e.target.value)}
                 placeholder="Enter country"
               />
-            </div>
+            </div> */}
           </CardHeader>
           
           <CardContent className="pb-2">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date </Label>
-                <Input
-                  id="startDate"
-                  value={editedEntry.startDate.includes('-') 
-                    ? `${editedEntry.startDate.split('-')[1]}.${editedEntry.startDate.split('-')[0]}` 
-                    : editedEntry.startDate}
-                  onChange={(e) => {
-                    // Convert MM.YYYY to YYYY-MM
-                    const parts = e.target.value.split('.');
-                    if (parts.length === 2) {
-                      const month = parts[0].padStart(2, '0');
-                      const year = parts[1];
-                      handleChange("startDate", `${year}-${month}`);
-                    } else {
-                      handleChange("startDate", e.target.value);
-                    }
-                  }}
-                  placeholder="Example: 09/2015"
-                  className="pr-3"
+                <Label htmlFor="startDate">Start Date</Label>
+                <MonthYearPicker
+                  date={startDate}
+                  setDate={handleStartDateChange}
+                  placeholder="Select month/year"
                 />
               </div>
               
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="endDate" className={isPresent ? "text-muted-foreground" : ""}>
-                    End Date 
+                    End Date
                   </Label>
                   <div className="flex items-center space-x-2">
                     <Switch 
@@ -162,27 +174,12 @@ const TimelineEntry = ({
                 </div>
                 
                 <div className="relative">
-                  <Input
-                    id="endDate"
-                    value={isPresent ? "" : (
-                      editedEntry.endDate.includes('-') 
-                        ? `${editedEntry.endDate.split('-')[1]}.${editedEntry.endDate.split('-')[0]}` 
-                        : editedEntry.endDate
-                    )}
-                    onChange={(e) => {
-                      // Convert MM.YYYY to YYYY-MM
-                      const parts = e.target.value.split('.');
-                      if (parts.length === 2) {
-                        const month = parts[0].padStart(2, '0');
-                        const year = parts[1];
-                        handleChange("endDate", `${year}-${month}`);
-                      } else {
-                        handleChange("endDate", e.target.value);
-                      }
-                    }}
+                  <MonthYearPicker
+                    date={endDate}
+                    setDate={handleEndDateChange}
+                    placeholder="Select month/year"
                     disabled={isPresent}
-                    className={cn("pr-3", isPresent && "opacity-50")}
-                    placeholder="Example: 06/2020"
+                    className={cn(isPresent && "opacity-50")}
                   />
                 </div>
               </div>

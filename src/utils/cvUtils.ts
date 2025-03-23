@@ -30,15 +30,15 @@ export interface CVData {
   entries: TimelineEntry[];
 }
 
-// Function to parse a date in DD.MM.YYYY format to an ISO string
+// Function to parse a date in DD/MM/YYYY format to an ISO string
 export const parseDateString = (dateString: string): string => {
   if (!dateString) return '';
   
   // If it's already in ISO format, return it
   if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
   
-  // Parse DD.MM.YYYY format
-  const parts = dateString.split('.');
+  // Parse DD/MM/YYYY format
+  const parts = dateString.split('/');
   if (parts.length === 3) {
     const day = parts[0].padStart(2, '0');
     const month = parts[1].padStart(2, '0');

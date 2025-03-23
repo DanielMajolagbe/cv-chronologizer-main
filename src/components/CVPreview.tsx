@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from "react";
 import { format, parseISO } from "date-fns";
 import { CVData, formatDateForDisplay, parseDateString } from "@/utils/cvUtils";
@@ -30,7 +29,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
       try {
         // Create a simplified text version of the CV
         let cvText = `${personalInfo.firstName} ${personalInfo.lastName}\n`;
-        cvText += `Date of Birth: ${format(parseISO(parseDateString(personalInfo.dateOfBirth)), "dd.MM.yyyy")}\n`;
+        cvText += `Date of Birth: ${format(parseISO(parseDateString(personalInfo.dateOfBirth)), "dd/MM/yyyy")}\n`;
         cvText += `${personalInfo.address}, ${personalInfo.country}\n`;
         cvText += `${personalInfo.email} | ${personalInfo.phone}\n\n`;
         cvText += `Chronological History\n\n`;
@@ -55,7 +54,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
   const formatDOB = (dob: string) => {
     try {
       const isoDate = parseDateString(dob);
-      return isoDate ? format(parseISO(isoDate), "dd.MM.yyyy") : dob;
+      return isoDate ? format(parseISO(isoDate), "dd/MM/yyyy") : dob;
     } catch (error) {
       return dob;
     }

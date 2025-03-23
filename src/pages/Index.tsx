@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCVData } from "@/hooks/useCVData";
 import { getDefaultStartMonth, generateCVDocument, TimelineEntry as TimelineEntryType, identifyGaps } from "@/utils/cvUtils";
 import PersonalDetails from "@/components/PersonalDetails";
@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Plus, Eye, ArrowRight, Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MonthYearPicker } from "@/components/ui/month-year-picker";
+import { format, parseISO } from "date-fns";
 
 const emptyEntry: Omit<TimelineEntryType, "id"> = {
   type: "education",
@@ -44,6 +46,12 @@ const Index = () => {
   const [newEntry, setNewEntry] = useState<Omit<TimelineEntryType, "id">>({...emptyEntry});
   const [isPresent, setIsPresent] = useState(false);
   const [showGaps, setShowGaps] = useState(false);
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    newEntry.startDate ? parseISO(newEntry.startDate) : undefined
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    newEntry.endDate && newEntry.endDate !== "present" ? parseISO(newEntry.endDate) : undefined
+  );
 
   const handleNewEntryChange = (field: keyof TimelineEntryType, value: string) => {
     setNewEntry(prev => ({ ...prev, [field]: value }));
@@ -53,13 +61,31 @@ const Index = () => {
     setNewEntry(prev => ({ ...prev, type: value as TimelineEntryType["type"] }));
   };
 
+  const handleStartDateChange = (date: Date | undefined) => {
+    setStartDate(date);
+    if (date) {
+      const formattedDate = format(date, "yyyy-MM");
+      handleNewEntryChange("startDate", formattedDate);
+    }
+  };
+
+  const handleEndDateChange = (date: Date | undefined) => {
+    setEndDate(date);
+    if (date) {
+      const formattedDate = format(date, "yyyy-MM");
+      handleNewEntryChange("endDate", formattedDate);
+    }
+  };
+
   const handlePresentToggle = (checked: boolean) => {
     setIsPresent(checked);
     if (checked) {
+      setEndDate(undefined);
       setNewEntry(prev => ({ ...prev, endDate: "present" }));
     } else {
       const today = new Date();
-      const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      setEndDate(today);
+      const formattedDate = format(today, "yyyy-MM");
       setNewEntry(prev => ({ ...prev, endDate: formattedDate }));
     }
   };
@@ -259,7 +285,7 @@ const Index = () => {
                   />
                 </div>
                 
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="new-country">Country</Label>
                   <Input
                     id="new-country"
@@ -267,44 +293,23 @@ const Index = () => {
                     onChange={(e) => handleNewEntryChange("country", e.target.value)}
                     placeholder="Enter country"
                   />
-                </div>
+                </div> */}
               </div>
               
               <div className="grid gap-6 sm:grid-cols-2 mb-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-startDate">Start Date (MM.YYYY)</Label>
-                  <Input
-                    id="new-startDate"
-                    value={newEntry.startDate.includes('-') 
-                      ? `${newEntry.startDate.split('-')[1]}.${newEntry.startDate.split('-')[0]}` 
-                      : newEntry.startDate}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Allow typing by updating the value immediately
-                      handleNewEntryChange("startDate", value);
-                      
-                      // If the value is complete (has the expected length), validate it
-                      if (value.length === 7) {
-                        const dateFormatRegex = /^(0[1-9]|1[0-2])\.(19|20)\d{2}$/;
-                        if (!dateFormatRegex.test(value)) {
-                          toast.error("Please use the format MM.YYYY (e.g., 09.2015)");
-                          return;
-                        }
-                        // Convert MM.YYYY to YYYY-MM only if format is valid
-                        const parts = value.split('.');
-                        const month = parts[0].padStart(2, '0');
-                        const year = parts[1];
-                        handleNewEntryChange("startDate", `${year}-${month}`);
-                      }
-                    }}
-                    placeholder="Example: 09.2015"
+                  <Label htmlFor="new-startDate">Start Date</Label>
+                  <MonthYearPicker
+                    date={startDate}
+                    setDate={handleStartDateChange}
+                    placeholder="Select month/year"
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="new-endDate" className={isPresent ? "text-muted-foreground" : ""}>
-                      End Date (MM.YYYY)
+                      End Date
                     </Label>
                     <div className="flex items-center space-x-2">
                       <Switch 
@@ -319,35 +324,12 @@ const Index = () => {
                   </div>
                   
                   <div className="relative">
-                    <Input
-                      id="new-endDate"
-                      value={isPresent ? "" : (
-                        newEntry.endDate.includes('-') 
-                          ? `${newEntry.endDate.split('-')[1]}.${newEntry.endDate.split('-')[0]}` 
-                          : newEntry.endDate
-                      )}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        // Allow typing by updating the value immediately
-                        handleNewEntryChange("endDate", value);
-                        
-                        // If the value is complete (has the expected length), validate it
-                        if (value.length === 7) {
-                          const dateFormatRegex = /^(0[1-9]|1[0-2])\.(19|20)\d{2}$/;
-                          if (!dateFormatRegex.test(value)) {
-                            toast.error("Please use the format MM.YYYY (e.g., 09.2015)");
-                            return;
-                          }
-                          // Convert MM.YYYY to YYYY-MM only if format is valid
-                          const parts = value.split('.');
-                          const month = parts[0].padStart(2, '0');
-                          const year = parts[1];
-                          handleNewEntryChange("endDate", `${year}-${month}`);
-                        }
-                      }}
+                    <MonthYearPicker
+                      date={endDate}
+                      setDate={handleEndDateChange}
+                      placeholder="Select month/year"
                       disabled={isPresent}
                       className={cn(isPresent && "opacity-50")}
-                      placeholder="Example: 06.2020"
                     />
                   </div>
                 </div>
