@@ -1,7 +1,7 @@
 
 import { useEffect, useRef } from "react";
 import { format, parseISO } from "date-fns";
-import { CVData, formatDateForDisplay } from "@/utils/cvUtils";
+import { CVData, formatDateForDisplay, parseDateString } from "@/utils/cvUtils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Copy, ArrowLeft } from "lucide-react";
@@ -30,15 +30,15 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
       try {
         // Create a simplified text version of the CV
         let cvText = `${personalInfo.firstName} ${personalInfo.lastName}\n`;
-        cvText += `${personalInfo.address}\n`;
-        cvText += `${personalInfo.email} | ${personalInfo.phone}\n`;
-        cvText += `Date of Birth: ${format(parseISO(personalInfo.dateOfBirth), "MMMM d, yyyy")}\n\n`;
-        cvText += `Education & Employment History\n\n`;
+        cvText += `Date of Birth: ${format(parseISO(parseDateString(personalInfo.dateOfBirth)), "dd.MM.yyyy")}\n`;
+        cvText += `${personalInfo.address}, ${personalInfo.country}\n`;
+        cvText += `${personalInfo.email} | ${personalInfo.phone}\n\n`;
+        cvText += `Chronological History\n\n`;
         
         entries.forEach(entry => {
           const startDate = formatDateForDisplay(entry.startDate);
           const endDate = formatDateForDisplay(entry.endDate);
-          cvText += `${entry.type === "education" ? "Education" : "Work Experience"}: ${entry.organization} ${startDate} - ${endDate}\n`;
+          cvText += `${entry.type === "education" ? "Education" : "Work Experience"}: ${entry.organization} ${entry.country ? `, ${entry.country}` : ''} ${startDate} - ${endDate}\n`;
           cvText += `${entry.title}\n`;
           cvText += `${entry.description}\n\n`;
         });
@@ -49,6 +49,15 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
         toast.error("Failed to copy to clipboard");
         console.error(err);
       }
+    }
+  };
+
+  const formatDOB = (dob: string) => {
+    try {
+      const isoDate = parseDateString(dob);
+      return isoDate ? format(parseISO(isoDate), "dd.MM.yyyy") : dob;
+    } catch (error) {
+      return dob;
     }
   };
 
@@ -92,9 +101,9 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
             {personalInfo.firstName} {personalInfo.lastName}
           </CardTitle>
           <div className="text-center text-muted-foreground">
-            <p>{personalInfo.address}</p>
+            <p>Date of Birth: {formatDOB(personalInfo.dateOfBirth)}</p>
+            <p>{personalInfo.address}{personalInfo.country ? `, ${personalInfo.country}` : ''}</p>
             <p>{personalInfo.email} | {personalInfo.phone}</p>
-            <p>Date of Birth: {personalInfo.dateOfBirth ? format(parseISO(personalInfo.dateOfBirth), "MMMM d, yyyy") : ""}</p>
           </div>
         </CardHeader>
         
@@ -112,7 +121,10 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
                       <span className="font-semibold">
                         {entry.type === "education" ? "Education" : entry.type === "work" ? "Work Experience" : "Gap/Break"}:
                       </span>{" "}
-                      <span>{entry.organization}</span>
+                      <span>
+                        {entry.organization}
+                        {entry.country && `, ${entry.country}`}
+                      </span>
                     </div>
                     <div className="text-right">
                       <span className="text-muted-foreground">

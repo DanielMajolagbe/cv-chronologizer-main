@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useCVData } from "@/hooks/useCVData";
 import { getDefaultStartMonth, generateCVDocument, TimelineEntry as TimelineEntryType, identifyGaps } from "@/utils/cvUtils";
@@ -11,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CalendarIcon, Plus, Eye, Upload, ArrowRight, Download } from "lucide-react";
+import { Plus, Eye, ArrowRight, Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,8 @@ const emptyEntry: Omit<TimelineEntryType, "id"> = {
   organization: "",
   startDate: "",
   endDate: "",
-  description: ""
+  description: "",
+  country: ""
 };
 
 const Index = () => {
@@ -134,7 +136,7 @@ const Index = () => {
             Royacare Agency CV Builder
           </h1>
           <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto">
-            Build your chronological CV easily, ensuring all entries follow each other in sequence from age 11 onwards.
+            Build your chronological CV easily, ensuring all entries follow each other in sequence from age 1-11 onwards.
           </p>
         </header>
 
@@ -143,8 +145,7 @@ const Index = () => {
           onChange={updatePersonalInfo}
         />
 
-
-<div className="mb-8">
+        <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Timeline Entries</h2>
             <div className="flex space-x-2">
@@ -163,8 +164,8 @@ const Index = () => {
           <div className="space-y-4 mb-6">
             {entries.length === 0 ? (
               <Card className="text-center p-6 bg-muted/50">
-                <p className="bg-transparent">
-                
+                <p className="text-muted-foreground">
+                  No entries yet. Add your first education or work experience below.
                 </p>
               </Card>
             ) : (
@@ -248,35 +249,55 @@ const Index = () => {
                 </div>
               </div>
               
-              <div className="space-y-2 mb-4">
-                <Label htmlFor="new-organization">Organization</Label>
-                <Input
-                  id="new-organization"
-                  value={newEntry.organization}
-                  onChange={(e) => handleNewEntryChange("organization", e.target.value)}
-                  placeholder={newEntry.type === "education" ? "School/University" : "Company/Employer"}
-                />
+              <div className="grid gap-6 sm:grid-cols-2 mb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-organization">Organization</Label>
+                  <Input
+                    id="new-organization"
+                    value={newEntry.organization}
+                    onChange={(e) => handleNewEntryChange("organization", e.target.value)}
+                    placeholder={newEntry.type === "education" ? "School/University" : "Company/Employer"}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-country">Country</Label>
+                  <Input
+                    id="new-country"
+                    value={newEntry.country || ""}
+                    onChange={(e) => handleNewEntryChange("country", e.target.value)}
+                    placeholder="Enter country"
+                  />
+                </div>
               </div>
               
               <div className="grid gap-6 sm:grid-cols-2 mb-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-startDate">Start Date</Label>
-                  <div className="relative">
-                    <Input
-                      id="new-startDate"
-                      type="month"
-                      value={newEntry.startDate.substring(0, 7)}
-                      onChange={(e) => handleNewEntryChange("startDate", e.target.value)}
-                      className="pr-10"
-                    />
-                    <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  </div>
+                  <Label htmlFor="new-startDate">Start Date (MM.YYYY)</Label>
+                  <Input
+                    id="new-startDate"
+                    value={newEntry.startDate.includes('-') 
+                      ? `${newEntry.startDate.split('-')[1]}.${newEntry.startDate.split('-')[0]}` 
+                      : newEntry.startDate}
+                    onChange={(e) => {
+                      // Convert MM.YYYY to YYYY-MM
+                      const parts = e.target.value.split('.');
+                      if (parts.length === 2) {
+                        const month = parts[0].padStart(2, '0');
+                        const year = parts[1];
+                        handleNewEntryChange("startDate", `${year}-${month}`);
+                      } else {
+                        handleNewEntryChange("startDate", e.target.value);
+                      }
+                    }}
+                    placeholder="Example: 09.2015"
+                  />
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="new-endDate" className={isPresent ? "text-muted-foreground" : ""}>
-                      End Date
+                      End Date (MM.YYYY)
                     </Label>
                     <div className="flex items-center space-x-2">
                       <Switch 
@@ -293,13 +314,26 @@ const Index = () => {
                   <div className="relative">
                     <Input
                       id="new-endDate"
-                      type="month"
-                      value={isPresent ? "" : newEntry.endDate.substring(0, 7)}
-                      onChange={(e) => handleNewEntryChange("endDate", e.target.value)}
+                      value={isPresent ? "" : (
+                        newEntry.endDate.includes('-') 
+                          ? `${newEntry.endDate.split('-')[1]}.${newEntry.endDate.split('-')[0]}` 
+                          : newEntry.endDate
+                      )}
+                      onChange={(e) => {
+                        // Convert MM.YYYY to YYYY-MM
+                        const parts = e.target.value.split('.');
+                        if (parts.length === 2) {
+                          const month = parts[0].padStart(2, '0');
+                          const year = parts[1];
+                          handleNewEntryChange("endDate", `${year}-${month}`);
+                        } else {
+                          handleNewEntryChange("endDate", e.target.value);
+                        }
+                      }}
                       disabled={isPresent}
-                      className={cn("pr-10", isPresent && "opacity-50")}
+                      className={cn(isPresent && "opacity-50")}
+                      placeholder="Example: 06.2020"
                     />
-                    <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   </div>
                 </div>
               </div>
@@ -327,7 +361,7 @@ const Index = () => {
 
         <div className="text-center mt-12 mb-6">
           <p className="text-sm text-muted-foreground">
-            All entries must follow chronological order from age 11 onwards. Ensure there are no unexplained gaps.
+            All entries must follow chronological order from age 1-11 onwards. Ensure there are no unexplained gaps.
           </p>
         </div>
       </div>

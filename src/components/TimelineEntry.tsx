@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CalendarIcon, Pencil, Trash2, Save, X } from "lucide-react";
+import { Pencil, Trash2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TimelineEntryProps {
@@ -107,28 +107,47 @@ const TimelineEntry = ({
                 placeholder={editedEntry.type === "education" ? "School/University" : "Company/Employer"}
               />
             </div>
+            
+            <div className="space-y-2 mt-4">
+              <Label htmlFor="country">Country</Label>
+              <Input
+                id="country"
+                value={editedEntry.country || ""}
+                onChange={(e) => handleChange("country", e.target.value)}
+                placeholder="Enter country"
+              />
+            </div>
           </CardHeader>
           
           <CardContent className="pb-2">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <div className="relative">
-                  <Input
-                    id="startDate"
-                    type="month"
-                    value={editedEntry.startDate.substring(0, 7)}
-                    onChange={(e) => handleChange("startDate", e.target.value)}
-                    className="pr-10"
-                  />
-                  <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                </div>
+                <Label htmlFor="startDate">Start Date </Label>
+                <Input
+                  id="startDate"
+                  value={editedEntry.startDate.includes('-') 
+                    ? `${editedEntry.startDate.split('-')[1]}.${editedEntry.startDate.split('-')[0]}` 
+                    : editedEntry.startDate}
+                  onChange={(e) => {
+                    // Convert MM.YYYY to YYYY-MM
+                    const parts = e.target.value.split('.');
+                    if (parts.length === 2) {
+                      const month = parts[0].padStart(2, '0');
+                      const year = parts[1];
+                      handleChange("startDate", `${year}-${month}`);
+                    } else {
+                      handleChange("startDate", e.target.value);
+                    }
+                  }}
+                  placeholder="Example: 09/2015"
+                  className="pr-3"
+                />
               </div>
               
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="endDate" className={isPresent ? "text-muted-foreground" : ""}>
-                    End Date
+                    End Date 
                   </Label>
                   <div className="flex items-center space-x-2">
                     <Switch 
@@ -145,13 +164,26 @@ const TimelineEntry = ({
                 <div className="relative">
                   <Input
                     id="endDate"
-                    type="month"
-                    value={isPresent ? "" : editedEntry.endDate.substring(0, 7)}
-                    onChange={(e) => handleChange("endDate", e.target.value)}
+                    value={isPresent ? "" : (
+                      editedEntry.endDate.includes('-') 
+                        ? `${editedEntry.endDate.split('-')[1]}.${editedEntry.endDate.split('-')[0]}` 
+                        : editedEntry.endDate
+                    )}
+                    onChange={(e) => {
+                      // Convert MM.YYYY to YYYY-MM
+                      const parts = e.target.value.split('.');
+                      if (parts.length === 2) {
+                        const month = parts[0].padStart(2, '0');
+                        const year = parts[1];
+                        handleChange("endDate", `${year}-${month}`);
+                      } else {
+                        handleChange("endDate", e.target.value);
+                      }
+                    }}
                     disabled={isPresent}
-                    className={cn("pr-10", isPresent && "opacity-50")}
+                    className={cn("pr-3", isPresent && "opacity-50")}
+                    placeholder="Example: 06/2020"
                   />
-                  <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
             </div>
@@ -186,7 +218,10 @@ const TimelineEntry = ({
                   {entry.type === "education" ? "Education" : entry.type === "work" ? "Work Experience" : "Gap/Break"}
                 </div>
                 <h3 className="text-lg font-medium">{entry.title}</h3>
-                <h4 className="text-base text-muted-foreground">{entry.organization}</h4>
+                <h4 className="text-base text-muted-foreground">
+                  {entry.organization}
+                  {entry.country && `, ${entry.country}`}
+                </h4>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">

@@ -1,11 +1,8 @@
-
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { PersonalInfo } from "@/utils/cvUtils";
 
 interface PersonalDetailsProps {
@@ -66,18 +63,42 @@ const PersonalDetails = ({ personalInfo, onChange }: PersonalDetailsProps) => {
             <Label htmlFor="dateOfBirth" className="text-sm font-medium">
               Date of Birth
             </Label>
-            <div className="relative">
-              <Input
-                id="dateOfBirth"
-                type="date"
-                value={personalInfo.dateOfBirth}
-                onChange={(e) => handleChange("dateOfBirth", e.target.value)}
-                className={cn("pr-10 transition-all focus:ring-2 focus:ring-primary/20")}
-                max={new Date().toISOString().split('T')[0]}
-                placeholder="Select your date of birth"
-              />
-              <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-            </div>
+            <Input
+              id="dateOfBirth"
+              value={personalInfo.dateOfBirth}
+              onChange={(e) => {
+                // Keep the original value for validation in the background
+                handleChange("dateOfBirth", e.target.value);
+              }}
+              className="transition-all focus:ring-2 focus:ring-primary/20"
+              placeholder="Example: 01.01.2000"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="country" className="text-sm font-medium">
+              Country
+            </Label>
+            <Input
+              id="country"
+              value={personalInfo.country}
+              onChange={(e) => handleChange("country", e.target.value)}
+              className="transition-all focus:ring-2 focus:ring-primary/20"
+              placeholder="Enter your country"
+            />
+          </div>
+          
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="address" className="text-sm font-medium">
+              Address
+            </Label>
+            <Textarea
+              id="address"
+              value={personalInfo.address}
+              onChange={(e) => handleChange("address", e.target.value)}
+              className="min-h-[80px] transition-all focus:ring-2 focus:ring-primary/20"
+              placeholder="Enter your full address"
+            />
           </div>
           
           <div className="space-y-2">
@@ -104,19 +125,6 @@ const PersonalDetails = ({ personalInfo, onChange }: PersonalDetailsProps) => {
               onChange={(e) => handleChange("phone", e.target.value)}
               className="transition-all focus:ring-2 focus:ring-primary/20"
               placeholder="Enter your phone number"
-            />
-          </div>
-          
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="address" className="text-sm font-medium">
-              Address
-            </Label>
-            <Textarea
-              id="address"
-              value={personalInfo.address}
-              onChange={(e) => handleChange("address", e.target.value)}
-              className="min-h-[80px] transition-all focus:ring-2 focus:ring-primary/20"
-              placeholder="Enter your full address"
             />
           </div>
         </div>

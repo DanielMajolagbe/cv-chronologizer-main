@@ -1,5 +1,4 @@
-
-import { format, differenceInYears, isAfter, isBefore, parseISO, differenceInMonths, addYears } from "date-fns";
+import { format, differenceInYears, isAfter, isBefore, addYears, parseISO } from "date-fns";
 import { saveAs } from "file-saver";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, Header, Footer, ImageRun, convertInchesToTwip, convertMillimetersToTwip, Media, UnderlineType, Tab, ExternalHyperlink } from "docx";
 
@@ -13,15 +12,17 @@ export interface TimelineEntry {
   startDate: string; // ISO format
   endDate: string; // ISO format or "present"
   description: string;
+  country?: string; // Added country field
 }
 
 export interface PersonalInfo {
   firstName: string;
   lastName: string;
-  dateOfBirth: string; // ISO format
+  dateOfBirth: string;
   email: string;
   phone: string;
   address: string;
+  country: string; // Added country field
 }
 
 export interface CVData {
@@ -29,36 +30,83 @@ export interface CVData {
   entries: TimelineEntry[];
 }
 
+// Function to parse a date in DD.MM.YYYY format to an ISO string
+export const parseDateString = (dateString: string): string => {
+  if (!dateString) return '';
+  
+  // If it's already in ISO format, return it
+  if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
+  
+  // Parse DD.MM.YYYY format
+  const parts = dateString.split('.');
+  if (parts.length === 3) {
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    
+    try {
+      // Create ISO string
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error("Invalid date format:", dateString);
+      return '';
+    }
+  }
+  
+  return '';
+};
+
 export const getStartYearFromDOB = (dateOfBirth: string): number => {
   if (!dateOfBirth) return new Date().getFullYear();
   
-  const dob = parseISO(dateOfBirth);
-  const ageElevenDate = new Date(dob);
-  ageElevenDate.setFullYear(dob.getFullYear() + 11);
+  const isoDob = parseDateString(dateOfBirth);
+  if (!isoDob) return new Date().getFullYear();
   
-  return ageElevenDate.getFullYear();
+  try {
+    const dob = parseISO(isoDob);
+    const ageElevenDate = addYears(dob, 11);
+    return ageElevenDate.getFullYear();
+  } catch (error) {
+    console.error("Error calculating start year from DOB:", error);
+    return new Date().getFullYear();
+  }
 };
 
 export const getDefaultStartMonth = (dateOfBirth: string): string => {
   if (!dateOfBirth) return format(new Date(), "yyyy-MM");
   
-  const dob = parseISO(dateOfBirth);
-  const ageElevenDate = new Date(dob);
-  ageElevenDate.setFullYear(dob.getFullYear() + 11);
+  const isoDob = parseDateString(dateOfBirth);
+  if (!isoDob) return format(new Date(), "yyyy-MM");
   
-  return format(ageElevenDate, "yyyy-MM");
+  try {
+    const dob = parseISO(isoDob);
+    const ageElevenDate = addYears(dob, 11);
+    return format(ageElevenDate, "yyyy-MM");
+  } catch (error) {
+    console.error("Error calculating default start month:", error);
+    return format(new Date(), "yyyy-MM");
+  }
 };
 
 export const isDateWithinElevenYearWindow = (dob: string, startDate: string): boolean => {
   if (!dob || !startDate) return false;
   
-  const dobDate = parseISO(dob);
-  const startDateParsed = parseISO(startDate);
-  const elevenYearsFromDOB = addYears(dobDate, 11);
-  const twelveYearsFromDOB = addYears(dobDate, 12);
+  const isoDob = parseDateString(dob);
+  if (!isoDob) return false;
   
-  return isAfter(startDateParsed, elevenYearsFromDOB) && 
-         isBefore(startDateParsed, twelveYearsFromDOB);
+  try {
+    const dobDate = parseISO(isoDob);
+    const startDateParsed = parseISO(startDate);
+    
+    const ageOneYear = addYears(dobDate, 1);
+    const ageElevenYears = addYears(dobDate, 11);
+    
+    return isAfter(startDateParsed, ageOneYear) && 
+           isBefore(startDateParsed, ageElevenYears);
+  } catch (error) {
+    console.error("Error validating date within window:", error);
+    return false;
+  }
 };
 
 export const isFirstChronologicalEntry = (entries: TimelineEntry[], entryId?: string): boolean => {
@@ -389,7 +437,7 @@ export const generateCVDocument = (data: CVData): void => {
             },
             children: [
               new TextRun({
-                text: "",
+                text: "ROYACARE AGENCY",
                 font: "Calibri",
                 size: 28,
                 bold: true,
