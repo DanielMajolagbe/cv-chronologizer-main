@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Plus, Eye, ArrowRight, Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { DatePicker } from "@/components/ui/month-year-picker";
+import { DatePicker, MonthYearPicker } from "@/components/ui/month-year-picker";
 import { format, parseISO } from "date-fns";
 
 const emptyEntry: Omit<TimelineEntryType, "id"> = {
@@ -307,7 +307,7 @@ const Index = () => {
               <div className="grid gap-6 sm:grid-cols-2 mb-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-startDate">Start Date</Label>
-                  <DatePicker
+                  <MonthYearPicker
                     date={startDate}
                     setDate={handleStartDateChange}
                     placeholder="Select month/year"
@@ -332,7 +332,7 @@ const Index = () => {
                   </div>
                   
                   <div className="relative">
-                    <DatePicker
+                    <MonthYearPicker
                       date={endDate}
                       setDate={handleEndDateChange}
                       placeholder="Select month/year"

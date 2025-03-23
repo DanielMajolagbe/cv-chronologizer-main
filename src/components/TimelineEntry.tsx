@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Pencil, Trash2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DatePicker } from "@/components/ui/month-year-picker";
+import { DatePicker, MonthYearPicker } from "@/components/ui/month-year-picker";
 import { format, parseISO } from "date-fns";
 
 interface TimelineEntryProps {
@@ -165,7 +165,7 @@ const TimelineEntry = ({
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date</Label>
-                <DatePicker
+                <MonthYearPicker
                   date={startDate}
                   setDate={handleStartDateChange}
                   placeholder="Select month/year"
@@ -190,7 +190,7 @@ const TimelineEntry = ({
                 </div>
                 
                 <div className="relative">
-                  <DatePicker
+                  <MonthYearPicker
                     date={endDate}
                     setDate={handleEndDateChange}
                     placeholder="Select month/year"

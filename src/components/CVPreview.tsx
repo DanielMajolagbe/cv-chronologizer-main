@@ -128,7 +128,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
         </CardHeader>
         
         <CardContent className="py-6">
-          <h2 className="text-xl font-semibold mb-4 border-b pb-2">Chronological History</h2>
+          <h2 className="text-xl font-semibold mb-4 border-b pb-2"></h2>
           
           {entries.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">No entries added yet</p>

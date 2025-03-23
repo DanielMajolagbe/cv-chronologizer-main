@@ -233,11 +233,11 @@ export const identifyGaps = (entries: TimelineEntry[]): { start: string; end: st
   return gaps;
 };
 
-export const formatDateForDisplay = (dateString: string): string => {
+export const formatDateForDisplay = (dateString: string, isFullDate: boolean = false): string => {
   if (dateString === "present") return "Present";
   try {
     const date = parseISO(dateString);
-    return format(date, "MMMM yyyy");
+    return isFullDate ? format(date, "dd MMMM yyyy") : format(date, "MMMM yyyy");
   } catch (error) {
     console.error("Invalid date format:", dateString);
     return dateString;
