@@ -30,7 +30,7 @@ export const useCVData = () => {
     // If this is the first entry, validate that it starts when the person is 11 years old
     if (entries.length === 0) {
       if (!isDateWithinElevenYearWindow(personalInfo.dateOfBirth, newEntry.startDate)) {
-        toast.error("First entry must start when you are 11 years old (within 11-12 years from your date of birth)");
+        toast.error("First entry must start when you are 11 years old (within 11 years from your date of birth)");
         return false;
       }
     }
