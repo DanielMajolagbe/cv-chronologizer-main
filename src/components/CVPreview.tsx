@@ -93,7 +93,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
           <div className="text-center mb-2">
             <img 
               src="https://royacare-agency.vercel.app/_next/image?url=%2Froya.png&w=256&q=75" 
-              alt="Royacare Agency Logo" 
+              alt="" 
               className="h-12 mx-auto mb-3"
             />
           </div>

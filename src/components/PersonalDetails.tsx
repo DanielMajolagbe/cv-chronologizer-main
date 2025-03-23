@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PersonalInfo } from "@/utils/cvUtils";
+import { toast } from "sonner";
 
 interface PersonalDetailsProps {
   personalInfo: PersonalInfo;
@@ -67,8 +68,17 @@ const PersonalDetails = ({ personalInfo, onChange }: PersonalDetailsProps) => {
               id="dateOfBirth"
               value={personalInfo.dateOfBirth}
               onChange={(e) => {
-                // Keep the original value for validation in the background
-                handleChange("dateOfBirth", e.target.value);
+                const value = e.target.value;
+                // Allow typing by updating the value immediately
+                handleChange("dateOfBirth", value);
+                
+                // If the value is complete (has the expected length), validate it
+                if (value.length === 10) {
+                  const dateFormatRegex = /^(0[1-9]|[12]\d|3[01])\.(0[1-9]|1[0-2])\.(19|20)\d{2}$/;
+                  if (!dateFormatRegex.test(value)) {
+                    toast.error("Please use the format DD.MM.YYYY (e.g., 01.01.2000)");
+                  }
+                }
               }}
               className="transition-all focus:ring-2 focus:ring-primary/20"
               placeholder="Example: 01.01.2000"

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useCVData } from "@/hooks/useCVData";
 import { getDefaultStartMonth, generateCVDocument, TimelineEntry as TimelineEntryType, identifyGaps } from "@/utils/cvUtils";
@@ -129,7 +128,7 @@ const Index = () => {
         <header className="text-center mb-10">
           <img 
             src="https://royacare-agency.vercel.app/_next/image?url=%2Froya.png&w=256&q=75" 
-            alt="Royacare Agency Logo" 
+            alt="" 
             className="h-16 mx-auto mb-3"
           />
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
@@ -280,14 +279,22 @@ const Index = () => {
                       ? `${newEntry.startDate.split('-')[1]}.${newEntry.startDate.split('-')[0]}` 
                       : newEntry.startDate}
                     onChange={(e) => {
-                      // Convert MM.YYYY to YYYY-MM
-                      const parts = e.target.value.split('.');
-                      if (parts.length === 2) {
+                      const value = e.target.value;
+                      // Allow typing by updating the value immediately
+                      handleNewEntryChange("startDate", value);
+                      
+                      // If the value is complete (has the expected length), validate it
+                      if (value.length === 7) {
+                        const dateFormatRegex = /^(0[1-9]|1[0-2])\.(19|20)\d{2}$/;
+                        if (!dateFormatRegex.test(value)) {
+                          toast.error("Please use the format MM.YYYY (e.g., 09.2015)");
+                          return;
+                        }
+                        // Convert MM.YYYY to YYYY-MM only if format is valid
+                        const parts = value.split('.');
                         const month = parts[0].padStart(2, '0');
                         const year = parts[1];
                         handleNewEntryChange("startDate", `${year}-${month}`);
-                      } else {
-                        handleNewEntryChange("startDate", e.target.value);
                       }
                     }}
                     placeholder="Example: 09.2015"
@@ -320,14 +327,22 @@ const Index = () => {
                           : newEntry.endDate
                       )}
                       onChange={(e) => {
-                        // Convert MM.YYYY to YYYY-MM
-                        const parts = e.target.value.split('.');
-                        if (parts.length === 2) {
+                        const value = e.target.value;
+                        // Allow typing by updating the value immediately
+                        handleNewEntryChange("endDate", value);
+                        
+                        // If the value is complete (has the expected length), validate it
+                        if (value.length === 7) {
+                          const dateFormatRegex = /^(0[1-9]|1[0-2])\.(19|20)\d{2}$/;
+                          if (!dateFormatRegex.test(value)) {
+                            toast.error("Please use the format MM.YYYY (e.g., 09.2015)");
+                            return;
+                          }
+                          // Convert MM.YYYY to YYYY-MM only if format is valid
+                          const parts = value.split('.');
                           const month = parts[0].padStart(2, '0');
                           const year = parts[1];
                           handleNewEntryChange("endDate", `${year}-${month}`);
-                        } else {
-                          handleNewEntryChange("endDate", e.target.value);
                         }
                       }}
                       disabled={isPresent}
