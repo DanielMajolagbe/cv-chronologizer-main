@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PersonalInfo } from "@/utils/cvUtils";
 import { toast } from "sonner";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePicker } from "@/components/ui/month-year-picker";
 import { format, parseISO } from "date-fns";
 
 interface PersonalDetailsProps {
@@ -84,19 +84,6 @@ const PersonalDetails = ({ personalInfo, onChange }: PersonalDetailsProps) => {
               date={dobDate}
               setDate={handleDateChange}
               placeholder="DD/MM/YYYY"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="country" className="text-sm font-medium">
-              Country
-            </Label>
-            <Input
-              id="country"
-              value={personalInfo.country}
-              onChange={(e) => handleChange("country", e.target.value)}
-              className="transition-all focus:ring-2 focus:ring-primary/20"
-              placeholder="Enter your country"
             />
           </div>
           

@@ -6,10 +6,9 @@ const initialPersonalInfo: PersonalInfo = {
   firstName: "",
   lastName: "",
   dateOfBirth: "",
-  email: "",
-  phone: "",
   address: "",
-  country: ""
+  email: "",
+  phone: ""
 };
 
 export const useCVData = () => {

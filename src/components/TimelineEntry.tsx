@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Pencil, Trash2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MonthYearPicker } from "@/components/ui/month-year-picker";
+import { DatePicker } from "@/components/ui/month-year-picker";
 import { format, parseISO } from "date-fns";
 
 interface TimelineEntryProps {
@@ -50,7 +50,19 @@ const TimelineEntry = ({
   };
 
   const handleTypeChange = (value: string) => {
-    setEditedEntry(prev => ({ ...prev, type: value as TimelineEntryType["type"] }));
+    if (value === "gap") {
+      setEditedEntry(prev => ({
+        ...prev,
+        type: value as TimelineEntryType["type"],
+        title: "Gap/Break",
+        organization: "Gap Period"
+      }));
+    } else {
+      setEditedEntry(prev => ({
+        ...prev,
+        type: value as TimelineEntryType["type"]
+      }));
+    }
   };
 
   const handleStartDateChange = (date: Date | undefined) => {
@@ -113,26 +125,30 @@ const TimelineEntry = ({
                 </Select>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="title">Position/Title</Label>
-                <Input
-                  id="title"
-                  value={editedEntry.title}
-                  onChange={(e) => handleChange("title", e.target.value)}
-                  placeholder={editedEntry.type === "education" ? "Student/Degree" : "Job Title/Position"}
-                />
-              </div>
+              {editedEntry.type !== "gap" && (
+                <div className="space-y-2">
+                  <Label htmlFor="title">Position/Title</Label>
+                  <Input
+                    id="title"
+                    value={editedEntry.title}
+                    onChange={(e) => handleChange("title", e.target.value)}
+                    placeholder={editedEntry.type === "education" ? "Student/Degree" : "Job Title/Position"}
+                  />
+                </div>
+              )}
             </div>
             
-            <div className="space-y-2 mt-4">
-              <Label htmlFor="organization">Organization</Label>
-              <Input
-                id="organization"
-                value={editedEntry.organization}
-                onChange={(e) => handleChange("organization", e.target.value)}
-                placeholder={editedEntry.type === "education" ? "School/University" : "Company/Employer"}
-              />
-            </div>
+            {editedEntry.type !== "gap" && (
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="organization">Organization</Label>
+                <Input
+                  id="organization"
+                  value={editedEntry.organization}
+                  onChange={(e) => handleChange("organization", e.target.value)}
+                  placeholder={editedEntry.type === "education" ? "School/University" : "Company/Employer"}
+                />
+              </div>
+            )}
             
             {/* <div className="space-y-2 mt-4">
               <Label htmlFor="country">Country</Label>
@@ -149,7 +165,7 @@ const TimelineEntry = ({
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date</Label>
-                <MonthYearPicker
+                <DatePicker
                   date={startDate}
                   setDate={handleStartDateChange}
                   placeholder="Select month/year"
@@ -174,7 +190,7 @@ const TimelineEntry = ({
                 </div>
                 
                 <div className="relative">
-                  <MonthYearPicker
+                  <DatePicker
                     date={endDate}
                     setDate={handleEndDateChange}
                     placeholder="Select month/year"
@@ -214,11 +230,16 @@ const TimelineEntry = ({
                 <div className="text-sm text-muted-foreground mb-1">
                   {entry.type === "education" ? "Education" : entry.type === "work" ? "Work Experience" : "Gap/Break"}
                 </div>
-                <h3 className="text-lg font-medium">{entry.title}</h3>
-                <h4 className="text-base text-muted-foreground">
-                  {entry.organization}
-                  {entry.country && `, ${entry.country}`}
-                </h4>
+                {entry.type !== "gap" ? (
+                  <>
+                    <h3 className="text-lg font-medium">{entry.title}</h3>
+                    <h4 className="text-base text-muted-foreground">
+                      {entry.organization}
+                    </h4>
+                  </>
+                ) : (
+                  <h3 className="text-lg font-medium">Gap/Break Period</h3>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">

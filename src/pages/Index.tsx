@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Plus, Eye, ArrowRight, Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { MonthYearPicker } from "@/components/ui/month-year-picker";
+import { DatePicker } from "@/components/ui/month-year-picker";
 import { format, parseISO } from "date-fns";
 
 const emptyEntry: Omit<TimelineEntryType, "id"> = {
@@ -23,8 +23,7 @@ const emptyEntry: Omit<TimelineEntryType, "id"> = {
   organization: "",
   startDate: "",
   endDate: "",
-  description: "",
-  country: ""
+  description: ""
 };
 
 const Index = () => {
@@ -43,7 +42,14 @@ const Index = () => {
     getCVData
   } = useCVData();
 
-  const [newEntry, setNewEntry] = useState<Omit<TimelineEntryType, "id">>({...emptyEntry});
+  const [newEntry, setNewEntry] = useState<Omit<TimelineEntryType, "id">>({
+    type: "education",
+    title: "",
+    organization: "",
+    startDate: "",
+    endDate: "",
+    description: ""
+  });
   const [isPresent, setIsPresent] = useState(false);
   const [showGaps, setShowGaps] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(
@@ -57,8 +63,18 @@ const Index = () => {
     setNewEntry(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleTypeChange = (value: string) => {
-    setNewEntry(prev => ({ ...prev, type: value as TimelineEntryType["type"] }));
+  const handleNewEntryTypeChange = (value: string) => {
+    const type = value as TimelineEntryType["type"];
+    if (type === "gap") {
+      setNewEntry(prev => ({ 
+        ...prev, 
+        type, 
+        title: "Gap/Break",
+        organization: "Gap Period"
+      }));
+    } else {
+      setNewEntry(prev => ({ ...prev, type }));
+    }
   };
 
   const handleStartDateChange = (date: Date | undefined) => {
@@ -250,7 +266,7 @@ const Index = () => {
                   <Label htmlFor="new-type">Entry Type</Label>
                   <Select 
                     value={newEntry.type} 
-                    onValueChange={handleTypeChange}
+                    onValueChange={handleNewEntryTypeChange}
                   >
                     <SelectTrigger id="new-type">
                       <SelectValue placeholder="Select type" />
@@ -263,19 +279,21 @@ const Index = () => {
                   </Select>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="new-title">Position/Title</Label>
-                  <Input
-                    id="new-title"
-                    value={newEntry.title}
-                    onChange={(e) => handleNewEntryChange("title", e.target.value)}
-                    placeholder={newEntry.type === "education" ? "Student/Degree" : "Job Title/Position"}
-                  />
-                </div>
+                {newEntry.type !== "gap" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="new-title">Position/Title</Label>
+                    <Input
+                      id="new-title"
+                      value={newEntry.title}
+                      onChange={(e) => handleNewEntryChange("title", e.target.value)}
+                      placeholder={newEntry.type === "education" ? "Student/Degree" : "Job Title/Position"}
+                    />
+                  </div>
+                )}
               </div>
               
-              <div className="grid gap-6 sm:grid-cols-2 mb-4">
-                <div className="space-y-2">
+              {newEntry.type !== "gap" && (
+                <div className="space-y-2 mt-4">
                   <Label htmlFor="new-organization">Organization</Label>
                   <Input
                     id="new-organization"
@@ -284,22 +302,12 @@ const Index = () => {
                     placeholder={newEntry.type === "education" ? "School/University" : "Company/Employer"}
                   />
                 </div>
-                
-                {/* <div className="space-y-2">
-                  <Label htmlFor="new-country">Country</Label>
-                  <Input
-                    id="new-country"
-                    value={newEntry.country || ""}
-                    onChange={(e) => handleNewEntryChange("country", e.target.value)}
-                    placeholder="Enter country"
-                  />
-                </div> */}
-              </div>
+              )}
               
               <div className="grid gap-6 sm:grid-cols-2 mb-4">
                 <div className="space-y-2">
                   <Label htmlFor="new-startDate">Start Date</Label>
-                  <MonthYearPicker
+                  <DatePicker
                     date={startDate}
                     setDate={handleStartDateChange}
                     placeholder="Select month/year"
@@ -324,7 +332,7 @@ const Index = () => {
                   </div>
                   
                   <div className="relative">
-                    <MonthYearPicker
+                    <DatePicker
                       date={endDate}
                       setDate={handleEndDateChange}
                       placeholder="Select month/year"

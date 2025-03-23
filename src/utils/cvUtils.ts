@@ -12,17 +12,15 @@ export interface TimelineEntry {
   startDate: string; // ISO format
   endDate: string; // ISO format or "present"
   description: string;
-  country?: string; // Added country field
 }
 
 export interface PersonalInfo {
   firstName: string;
   lastName: string;
-  dateOfBirth: string;
+  dateOfBirth?: string;
+  address: string;
   email: string;
   phone: string;
-  address: string;
-  country: string; // Added country field
 }
 
 export interface CVData {

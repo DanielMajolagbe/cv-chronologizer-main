@@ -28,19 +28,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
     if (previewRef.current) {
       try {
         // Create a simplified text version of the CV
-        let cvText = `${personalInfo.firstName} ${personalInfo.lastName}\n`;
-        cvText += `Date of Birth: ${format(parseISO(parseDateString(personalInfo.dateOfBirth)), "dd/MM/yyyy")}\n`;
-        cvText += `${personalInfo.address}, ${personalInfo.country}\n`;
-        cvText += `${personalInfo.email} | ${personalInfo.phone}\n\n`;
-        cvText += `Chronological History\n\n`;
-        
-        entries.forEach(entry => {
-          const startDate = formatDateForDisplay(entry.startDate);
-          const endDate = formatDateForDisplay(entry.endDate);
-          cvText += `${entry.type === "education" ? "Education" : "Work Experience"}: ${entry.organization} ${entry.country ? `, ${entry.country}` : ''} ${startDate} - ${endDate}\n`;
-          cvText += `${entry.title}\n`;
-          cvText += `${entry.description}\n\n`;
-        });
+        const cvText = generateCVText();
         
         await navigator.clipboard.writeText(cvText);
         toast.success("CV copied to clipboard");
@@ -58,6 +46,46 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
     } catch (error) {
       return dob;
     }
+  };
+
+  const generateCVText = () => {
+    let cvText = "";
+    
+    // Add personal info
+    cvText += `${personalInfo.firstName} ${personalInfo.lastName}\n`;
+    if (personalInfo.email) cvText += `${personalInfo.email} • `;
+    if (personalInfo.phone) cvText += `${personalInfo.phone}\n`;
+    if (personalInfo.address) cvText += `${personalInfo.address}\n`;
+    cvText += "\n";
+    
+    // Add sorted entries
+    const sortedEntries = [...entries].sort((a, b) => {
+      return a.startDate.localeCompare(b.startDate);
+    });
+    
+    sortedEntries.forEach(entry => {
+      const startDate = formatDateForDisplay(entry.startDate);
+      const endDate = formatDateForDisplay(entry.endDate);
+      
+      if (entry.type === "gap") {
+        cvText += `Gap/Break: ${startDate} - ${endDate}\n`;
+        if (entry.description) {
+          cvText += `${entry.description}\n\n`;
+        } else {
+          cvText += `Gap/Break Period\n\n`;
+        }
+      } else {
+        cvText += `${entry.type === "education" ? "Education" : "Work Experience"}: ${entry.organization} ${startDate} - ${endDate}\n`;
+        cvText += `${entry.title}\n`;
+        if (entry.description) {
+          cvText += `${entry.description}\n\n`;
+        } else {
+          cvText += `\n`;
+        }
+      }
+    });
+    
+    return cvText;
   };
 
   return (
@@ -88,21 +116,14 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
       </div>
 
       <Card className="preview-card bg-white shadow-md border">
-        <CardHeader className="border-b pb-6">
-          <div className="text-center mb-2">
-            <img 
-              src="https://royacare-agency.vercel.app/_next/image?url=%2Froya.png&w=256&q=75" 
-              alt="" 
-              className="h-12 mx-auto mb-3"
-            />
-          </div>
-          <CardTitle className="text-2xl font-bold text-center">
-            {personalInfo.firstName} {personalInfo.lastName}
-          </CardTitle>
-          <div className="text-center text-muted-foreground">
-            <p>Date of Birth: {formatDOB(personalInfo.dateOfBirth)}</p>
-            <p>{personalInfo.address}{personalInfo.country ? `, ${personalInfo.country}` : ''}</p>
-            <p>{personalInfo.email} | {personalInfo.phone}</p>
+        <CardHeader className="pb-0">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold mb-1">{personalInfo.firstName} {personalInfo.lastName}</h2>
+            <div className="text-center text-muted-foreground">
+              <p>Date of Birth: {formatDOB(personalInfo.dateOfBirth)}</p>
+              {personalInfo.address && <p>{personalInfo.address}</p>}
+              <p>{personalInfo.email} | {personalInfo.phone}</p>
+            </div>
           </div>
         </CardHeader>
         
@@ -120,10 +141,11 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
                       <span className="font-semibold">
                         {entry.type === "education" ? "Education" : entry.type === "work" ? "Work Experience" : "Gap/Break"}:
                       </span>{" "}
-                      <span>
-                        {entry.organization}
-                        {entry.country && `, ${entry.country}`}
-                      </span>
+                      {entry.type !== "gap" && (
+                        <span>
+                          {entry.organization}
+                        </span>
+                      )}
                     </div>
                     <div className="text-right">
                       <span className="text-muted-foreground">
@@ -131,7 +153,11 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
                       </span>
                     </div>
                   </div>
-                  <p className="font-medium">{entry.title}</p>
+                  {entry.type !== "gap" ? (
+                    <p className="font-medium">{entry.title}</p>
+                  ) : (
+                    <p className="font-medium">Gap/Break Period</p>
+                  )}
                   <p className="text-muted-foreground">{entry.description}</p>
                 </div>
               ))}
