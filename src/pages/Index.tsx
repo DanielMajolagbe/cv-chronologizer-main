@@ -273,7 +273,7 @@ const Index = () => {
               
               <div className="grid gap-6 sm:grid-cols-2 mb-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-startDate">Start Date </Label>
+                  <Label htmlFor="new-startDate">Start Date (MM.YYYY)</Label>
                   <Input
                     id="new-startDate"
                     value={newEntry.startDate.includes('-') 
@@ -290,14 +290,14 @@ const Index = () => {
                         handleNewEntryChange("startDate", e.target.value);
                       }
                     }}
-                    placeholder="E.g: 09/2015"
+                    placeholder="Example: 09.2015"
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="new-endDate" className={isPresent ? "text-muted-foreground" : ""}>
-                      End Date 
+                      End Date (MM.YYYY)
                     </Label>
                     <div className="flex items-center space-x-2">
                       <Switch 
@@ -332,7 +332,7 @@ const Index = () => {
                       }}
                       disabled={isPresent}
                       className={cn(isPresent && "opacity-50")}
-                      placeholder="E.g: 06/2020"
+                      placeholder="Example: 06.2020"
                     />
                   </div>
                 </div>

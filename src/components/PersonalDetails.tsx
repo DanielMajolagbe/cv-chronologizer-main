@@ -61,7 +61,7 @@ const PersonalDetails = ({ personalInfo, onChange }: PersonalDetailsProps) => {
           
           <div className="space-y-2">
             <Label htmlFor="dateOfBirth" className="text-sm font-medium">
-              Date of Birth
+              Date of Birth (DD.MM.YYYY)
             </Label>
             <Input
               id="dateOfBirth"
@@ -71,7 +71,7 @@ const PersonalDetails = ({ personalInfo, onChange }: PersonalDetailsProps) => {
                 handleChange("dateOfBirth", e.target.value);
               }}
               className="transition-all focus:ring-2 focus:ring-primary/20"
-              placeholder="E.g: 01/12/2000"
+              placeholder="Example: 01.01.2000"
             />
           </div>
           
