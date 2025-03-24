@@ -9,6 +9,7 @@ export interface TimelineEntry {
   type: EntryType;
   title: string;
   organization: string;
+  country: string;
   startDate: string; // ISO format
   endDate: string; // ISO format or "present"
   description: string;
@@ -517,7 +518,7 @@ export const generateCVDocument = (data: CVData): void => {
                       bold: true,
                     }),
                     new TextRun({
-                      text: entry.organization,
+                      text: `${entry.organization}${entry.country ? `, ${entry.country}` : ''}`,
                       bold: true,
                     }),
                     new TextRun({

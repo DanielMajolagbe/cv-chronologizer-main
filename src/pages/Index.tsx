@@ -1,6 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCVData } from "@/hooks/useCVData";
-import { getDefaultStartMonth, generateCVDocument, TimelineEntry as TimelineEntryType, identifyGaps } from "@/utils/cvUtils";
+import { 
+  getDefaultStartMonth, 
+  generateCVDocument, 
+  TimelineEntry as TimelineEntryType, 
+  identifyGaps,
+  isEntryInChronologicalOrder 
+} from "@/utils/cvUtils";
 import PersonalDetails from "@/components/PersonalDetails";
 import TimelineEntry from "@/components/TimelineEntry";
 import CVPreview from "@/components/CVPreview";
@@ -21,6 +27,7 @@ const emptyEntry: Omit<TimelineEntryType, "id"> = {
   type: "education",
   title: "",
   organization: "",
+  country: "",
   startDate: "",
   endDate: "",
   description: ""
@@ -46,6 +53,7 @@ const Index = () => {
     type: "education",
     title: "",
     organization: "",
+    country: "",
     startDate: "",
     endDate: "",
     description: ""
@@ -58,9 +66,15 @@ const Index = () => {
   const [endDate, setEndDate] = useState<Date | undefined>(
     newEntry.endDate && newEntry.endDate !== "present" ? parseISO(newEntry.endDate) : undefined
   );
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
+  const formRefs = useRef<Record<string, HTMLElement | null>>({});
 
   const handleNewEntryChange = (field: keyof TimelineEntryType, value: string) => {
     setNewEntry(prev => ({ ...prev, [field]: value }));
+    // Clear validation error when field is filled
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({ ...prev, [field]: false }));
+    }
   };
 
   const handleNewEntryTypeChange = (value: string) => {
@@ -70,10 +84,19 @@ const Index = () => {
         ...prev, 
         type, 
         title: "Gap/Break",
-        organization: "Gap Period"
+        organization: "Gap Period",
+        country: "",
+        description: "Gap period in timeline"
       }));
     } else {
-      setNewEntry(prev => ({ ...prev, type }));
+      setNewEntry(prev => ({ 
+        ...prev, 
+        type,
+        title: "",
+        organization: "",
+        country: "",
+        description: ""
+      }));
     }
   };
 
@@ -107,15 +130,59 @@ const Index = () => {
   };
 
   const handleAddEntry = () => {
-    if (!newEntry.title || !newEntry.organization || !newEntry.startDate || (!isPresent && !newEntry.endDate)) {
-      toast.error("Please fill all required fields");
+    // Validate required fields
+    const errors: Record<string, boolean> = {};
+    const requiredFields = ['title', 'organization', 'country', 'startDate'];
+    if (!isPresent) requiredFields.push('endDate');
+
+    requiredFields.forEach(field => {
+      if (!newEntry[field]) {
+        errors[field] = true;
+        // Scroll to first error field
+        if (formRefs.current[field]) {
+          formRefs.current[field]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    });
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      toast.error("Please fill all required fields", {
+        style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+      });
+      return;
+    }
+
+    // Check chronological order
+    const entryToCheck = {
+      ...newEntry,
+      id: 'temp'
+    };
+
+    if (!isEntryInChronologicalOrder(entries, entryToCheck)) {
+      toast.error("Entry dates must follow chronological order", {
+        style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+      });
+      setValidationErrors(prev => ({ ...prev, startDate: true, endDate: true }));
+      formRefs.current.startDate?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
     const success = addEntry(newEntry);
     if (success) {
-      setNewEntry({...emptyEntry});
+      // Set the next entry's start date to the current entry's end date
+      const nextStartDate = isPresent ? new Date() : parseISO(newEntry.endDate);
+      setStartDate(nextStartDate);
+      handleNewEntryChange("startDate", format(nextStartDate, "yyyy-MM"));
+      
+      // Reset other fields
+      setNewEntry(prev => ({
+        ...emptyEntry,
+        startDate: format(nextStartDate, "yyyy-MM"),
+        type: prev.type
+      }));
       setIsPresent(false);
+      setEndDate(undefined);
       toast.success("Entry added successfully");
     }
   };
@@ -262,7 +329,7 @@ const Index = () => {
             
             <CardContent>
               <div className="grid gap-6 sm:grid-cols-2 mb-4">
-                <div className="space-y-2">
+                <div className="space-y-2" ref={el => formRefs.current.type = el}>
                   <Label htmlFor="new-type">Entry Type</Label>
                   <Select 
                     value={newEntry.type} 
@@ -280,44 +347,79 @@ const Index = () => {
                 </div>
                 
                 {newEntry.type !== "gap" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="new-title">Position/Title</Label>
+                  <div className="space-y-2" ref={el => formRefs.current.title = el}>
+                    <Label htmlFor="new-title" className="flex items-center">
+                      Position/Title
+                      {validationErrors.title && <span className="text-red-500 ml-1">*</span>}
+                    </Label>
                     <Input
                       id="new-title"
                       value={newEntry.title}
                       onChange={(e) => handleNewEntryChange("title", e.target.value)}
                       placeholder={newEntry.type === "education" ? "Student/Degree" : "Job Title/Position"}
+                      className={cn(validationErrors.title && "border-red-500 focus:ring-red-500")}
                     />
                   </div>
                 )}
               </div>
               
               {newEntry.type !== "gap" && (
-                <div className="space-y-2 mt-4">
-                  <Label htmlFor="new-organization">Organization</Label>
-                  <Input
-                    id="new-organization"
-                    value={newEntry.organization}
-                    onChange={(e) => handleNewEntryChange("organization", e.target.value)}
-                    placeholder={newEntry.type === "education" ? "School/University" : "Company/Employer"}
-                  />
-                </div>
+                <>
+                  <div className="space-y-2 mt-4" ref={el => formRefs.current.organization = el}>
+                    <Label htmlFor="new-organization" className="flex items-center">
+                      Organization
+                      {validationErrors.organization && <span className="text-red-500 ml-1">*</span>}
+                    </Label>
+                    <Input
+                      id="new-organization"
+                      value={newEntry.organization}
+                      onChange={(e) => handleNewEntryChange("organization", e.target.value)}
+                      placeholder={newEntry.type === "education" ? "School/University" : "Company/Employer"}
+                      className={cn(validationErrors.organization && "border-red-500 focus:ring-red-500")}
+                    />
+                  </div>
+
+                  <div className="space-y-2 mt-4" ref={el => formRefs.current.country = el}>
+                    <Label htmlFor="new-country" className="flex items-center">
+                      Country
+                      {validationErrors.country && <span className="text-red-500 ml-1">*</span>}
+                    </Label>
+                    <Input
+                      id="new-country"
+                      value={newEntry.country}
+                      onChange={(e) => handleNewEntryChange("country", e.target.value)}
+                      placeholder="Enter country"
+                      className={cn(
+                        "transition-all focus:ring-2 focus:ring-primary/20",
+                        validationErrors.country && "border-red-500 focus:ring-red-500"
+                      )}
+                    />
+                  </div>
+                </>
               )}
               
               <div className="grid gap-6 sm:grid-cols-2 mb-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-startDate">Start Date</Label>
+                <div className="space-y-2" ref={el => formRefs.current.startDate = el}>
+                  <Label htmlFor="new-startDate" className="flex items-center">
+                    Start Date
+                    {validationErrors.startDate && <span className="text-red-500 ml-1">*</span>}
+                  </Label>
                   <MonthYearPicker
                     date={startDate}
                     setDate={handleStartDateChange}
                     placeholder="Select month/year"
+                    className={cn(validationErrors.startDate && "border-red-500 focus:ring-red-500")}
                   />
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-2" ref={el => formRefs.current.endDate = el}>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="new-endDate" className={isPresent ? "text-muted-foreground" : ""}>
+                    <Label htmlFor="new-endDate" className={cn(
+                      isPresent ? "text-muted-foreground" : "",
+                      "flex items-center"
+                    )}>
                       End Date
+                      {validationErrors.endDate && !isPresent && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     <div className="flex items-center space-x-2">
                       <Switch 
@@ -337,13 +439,16 @@ const Index = () => {
                       setDate={handleEndDateChange}
                       placeholder="Select month/year"
                       disabled={isPresent}
-                      className={cn(isPresent && "opacity-50")}
+                      className={cn(
+                        isPresent && "opacity-50",
+                        validationErrors.endDate && !isPresent && "border-red-500 focus:ring-red-500"
+                      )}
                     />
                   </div>
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-2" ref={el => formRefs.current.description = el}>
                 <Label htmlFor="new-description">Description</Label>
                 <Textarea
                   id="new-description"
@@ -364,11 +469,23 @@ const Index = () => {
 
         </div>
 
-        <div className="text-center mt-12 mb-6">
-          <p className="text-sm text-muted-foreground">
-            All entries must follow chronological order from age 1-11 onwards. Ensure there are no unexplained gaps.
-          </p>
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4">
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <Button variant="outline" onClick={handleGapsClick}>
+              {showGaps ? "Hide Gaps" : "Show Gaps"}
+            </Button>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={togglePreviewMode}>
+                <Eye className="h-4 w-4 mr-2" /> Preview
+              </Button>
+              <Button onClick={handleDownload}>
+                <Download className="h-4 w-4 mr-2" /> Download
+              </Button>
+            </div>
+          </div>
         </div>
+
+        <div className="h-20"></div>
       </div>
     </div>
   );

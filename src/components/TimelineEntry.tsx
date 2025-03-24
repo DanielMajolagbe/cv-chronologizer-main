@@ -150,15 +150,18 @@ const TimelineEntry = ({
               </div>
             )}
             
-            {/* <div className="space-y-2 mt-4">
-              <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                value={editedEntry.country || ""}
-                onChange={(e) => handleChange("country", e.target.value)}
-                placeholder="Enter country"
-              />
-            </div> */}
+            {editedEntry.type !== "gap" && (
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={editedEntry.country || ""}
+                  onChange={(e) => handleChange("country", e.target.value)}
+                  placeholder="Enter country"
+                  className="transition-all focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            )}
           </CardHeader>
           
           <CardContent className="pb-2">
@@ -234,7 +237,7 @@ const TimelineEntry = ({
                   <>
                     <h3 className="text-lg font-medium">{entry.title}</h3>
                     <h4 className="text-base text-muted-foreground">
-                      {entry.organization}
+                      {entry.organization}{entry.country ? `, ${entry.country}` : ''}
                     </h4>
                   </>
                 ) : (
