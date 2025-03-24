@@ -435,7 +435,7 @@ export const generateCVDocument = (data: CVData): void => {
             },
             children: [
               new TextRun({
-                text: "ROYACARE AGENCY",
+                text: "CURRICULUM VITAE",
                 font: "Calibri",
                 size: 28,
                 bold: true,
