@@ -461,6 +461,18 @@ export const generateCVDocument = (data: CVData): void => {
             alignment: AlignmentType.CENTER,
             children: [
               new TextRun({
+                text: `Date of Birth: ${format(parseISO(personalInfo.dateOfBirth), "dd/MM/yyyy")}`,
+                size: 22,
+                color: "666666",
+              }),
+            ],
+          }),
+          
+          new Paragraph({
+            style: "ContactInfo",
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
                 text: personalInfo.address,
                 size: 22,
                 color: "666666",
@@ -474,18 +486,6 @@ export const generateCVDocument = (data: CVData): void => {
             children: [
               new TextRun({
                 text: `${personalInfo.email} | ${personalInfo.phone}`,
-                size: 22,
-                color: "666666",
-              }),
-            ],
-          }),
-          
-          new Paragraph({
-            style: "ContactInfo",
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: `Date of Birth: ${format(parseISO(personalInfo.dateOfBirth), "MMMM d, yyyy")}`,
                 size: 22,
                 color: "666666",
               }),
