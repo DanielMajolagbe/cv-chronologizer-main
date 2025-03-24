@@ -51,7 +51,9 @@ export const useCVData = () => {
         const newStartMonth = newStartDate.getMonth();
         
         if (prevEndYear !== newStartYear || prevEndMonth !== newStartMonth) {
-          toast.error("Each entry must start exactly when the previous one ends (same month and year)");
+          toast.error("Each entry must start exactly when the previous one ends (same month and year)", {
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
           return false;
         }
       }
@@ -96,7 +98,9 @@ export const useCVData = () => {
           const updatedStartMonth = updatedStartDate.getMonth();
           
           if (prevEndYear !== updatedStartYear || prevEndMonth !== updatedStartMonth) {
-            toast.error("Each entry must start exactly when the previous one ends (same month and year)");
+            toast.error("Each entry must start exactly when the previous one ends (same month and year)", {
+              style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+            });
             return false;
           }
         }

@@ -189,15 +189,14 @@ const Index = () => {
 
     const success = addEntry(newEntry);
     if (success) {
-      // Set the next entry's start date to the current entry's end date
-      const nextStartDate = isPresent ? new Date() : parseISO(newEntry.endDate);
-      setStartDate(nextStartDate);
-      handleNewEntryChange("startDate", format(nextStartDate, "yyyy-MM"));
+      // Reset form to default state
+      setStartDate(undefined);
+      setEndDate(undefined);
       
       // Reset other fields
       setNewEntry(prev => ({
         ...emptyEntry,
-        startDate: format(nextStartDate, "yyyy-MM"),
+        startDate: "",
         type: prev.type
       }));
       setIsPresent(false);
