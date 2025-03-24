@@ -132,8 +132,22 @@ const Index = () => {
   const handleAddEntry = () => {
     // Validate required fields
     const errors: Record<string, boolean> = {};
-    const requiredFields = ['title', 'organization', 'country', 'startDate'];
-    if (!isPresent) requiredFields.push('endDate');
+    let requiredFields: (keyof TimelineEntryType)[] = ['description', 'startDate'];
+
+    if (newEntry.type === 'gap') {
+      // For gap entries, only description and dates are required
+      if (!isPresent) requiredFields.push('endDate');
+    } else {
+      // For education and work entries, all fields are required
+      requiredFields = [
+        'title',
+        'organization',
+        'country',
+        'description',
+        'startDate'
+      ];
+      if (!isPresent) requiredFields.push('endDate');
+    }
 
     requiredFields.forEach(field => {
       if (!newEntry[field]) {
@@ -147,9 +161,14 @@ const Index = () => {
 
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
-      toast.error("Please fill all required fields", {
-        style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-      });
+      toast.error(
+        newEntry.type === 'gap' 
+          ? "Please provide a description and dates for the gap period"
+          : "Please fill all required fields",
+        {
+          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+        }
+      );
       return;
     }
 
@@ -254,7 +273,7 @@ const Index = () => {
         />
 
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          {/* <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Timeline Entries</h2>
             <div className="flex space-x-2">
               <Button variant="outline" size="sm" onClick={handleGapsClick}>
@@ -267,14 +286,14 @@ const Index = () => {
                 <Download className="h-4 w-4 mr-2" /> Download
               </Button>
             </div>
-          </div>
+          </div> */}
 
           <div className="space-y-4 mb-6">
             {entries.length === 0 ? (
               <Card className="text-center p-6 bg-muted/50">
-                <p className="text-muted-foreground">
+                {/* <p className="text-muted-foreground">
                   No entries yet. Add your first education or work experience below.
-                </p>
+                </p> */}
               </Card>
             ) : (
               <div>
@@ -398,7 +417,7 @@ const Index = () => {
                 </>
               )}
               
-              <div className="grid gap-6 sm:grid-cols-2 mb-4">
+              <div className="grid gap-6 sm:grid-cols-2 mb-4 mt-4">
                 <div className="space-y-2" ref={el => formRefs.current.startDate = el}>
                   <Label htmlFor="new-startDate" className="flex items-center">
                     Start Date
@@ -449,13 +468,19 @@ const Index = () => {
               </div>
               
               <div className="space-y-2" ref={el => formRefs.current.description = el}>
-                <Label htmlFor="new-description">Description</Label>
+                <Label htmlFor="new-description" className="flex items-center">
+                  Description
+                  {validationErrors.description && <span className="text-red-500 ml-1">*</span>}
+                </Label>
                 <Textarea
                   id="new-description"
                   value={newEntry.description}
                   onChange={(e) => handleNewEntryChange("description", e.target.value)}
                   placeholder="Describe your role, responsibilities, achievements, or studies..."
-                  className="min-h-[100px]"
+                  className={cn(
+                    "min-h-[100px] transition-all focus:ring-2 focus:ring-primary/20",
+                    validationErrors.description && "border-red-500 focus:ring-red-500"
+                  )}
                 />
               </div>
             </CardContent>

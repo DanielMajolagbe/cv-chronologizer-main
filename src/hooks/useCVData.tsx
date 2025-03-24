@@ -28,7 +28,9 @@ export const useCVData = () => {
     if (entries.length === 0) {
       const isoDob = parseDateString(personalInfo.dateOfBirth);
       if (!isDateWithinElevenYearWindow(isoDob, newEntry.startDate)) {
-        toast.error("First entry must start when you are between 1 and 11 years old");
+        toast.error("First entry must start when you are between 1 and 11 years old", {
+          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+        });
         return false;
       }
     } else {
@@ -72,7 +74,9 @@ export const useCVData = () => {
     if (isFirstEntry) {
       const isoDob = parseDateString(personalInfo.dateOfBirth);
       if (!isDateWithinElevenYearWindow(isoDob, updatedEntry.startDate)) {
-        toast.error("First entry must start when you are between 1 and 11 years old");
+        toast.error("First entry must start when you are between 1 and 11 years old", {
+          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+        });
         return false;
       }
     } else {
