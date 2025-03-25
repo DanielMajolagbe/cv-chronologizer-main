@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { CVData, formatDateForDisplay, parseDateString } from "@/utils/cvUtils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Copy, ArrowLeft } from "lucide-react";
+import { Send, Copy, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import "@/styles/no-select.css";
 
 interface CVPreviewProps {
   data: CVData;
@@ -15,6 +16,7 @@ interface CVPreviewProps {
 const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const { personalInfo, entries } = data;
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     // Add entrance animation
@@ -22,22 +24,21 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
     if (element) {
       element.classList.add("animate-fade-in");
     }
+    
+    // Disable text selection and right-click
+    const disableTextSelection = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+    
+    document.addEventListener('selectstart', disableTextSelection);
+    document.addEventListener('contextmenu', disableTextSelection);
+    
+    return () => {
+      document.removeEventListener('selectstart', disableTextSelection);
+      document.removeEventListener('contextmenu', disableTextSelection);
+    };
   }, []);
-
-  const copyToClipboard = async () => {
-    if (previewRef.current) {
-      try {
-        // Create a simplified text version of the CV
-        const cvText = generateCVText();
-        
-        await navigator.clipboard.writeText(cvText);
-        toast.success("CV copied to clipboard");
-      } catch (err) {
-        toast.error("Failed to copy to clipboard");
-        console.error(err);
-      }
-    }
-  };
 
   const formatDOB = (dob: string) => {
     try {
@@ -48,44 +49,13 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
     }
   };
 
-  const generateCVText = () => {
-    let cvText = "";
-    
-    // Add personal info
-    cvText += `${personalInfo.firstName} ${personalInfo.lastName}\n`;
-    if (personalInfo.email) cvText += `${personalInfo.email} • `;
-    if (personalInfo.phone) cvText += `${personalInfo.phone}\n`;
-    if (personalInfo.address) cvText += `${personalInfo.address}\n`;
-    cvText += "\n";
-    
-    // Add sorted entries
-    const sortedEntries = [...entries].sort((a, b) => {
-      return a.startDate.localeCompare(b.startDate);
-    });
-    
-    sortedEntries.forEach(entry => {
-      const startDate = formatDateForDisplay(entry.startDate);
-      const endDate = formatDateForDisplay(entry.endDate);
-      
-      if (entry.type === "gap") {
-        cvText += `Gap/Break: ${startDate} - ${endDate}\n`;
-        if (entry.description) {
-          cvText += `${entry.description}\n\n`;
-        } else {
-          cvText += `Gap/Break Period\n\n`;
-        }
-      } else {
-        cvText += `${entry.type === "education" ? "Education" : "Work Experience"}: ${entry.organization} ${startDate} - ${endDate}\n`;
-        cvText += `${entry.title}\n`;
-        if (entry.description) {
-          cvText += `${entry.description}\n\n`;
-        } else {
-          cvText += `\n`;
-        }
-      }
-    });
-    
-    return cvText;
+  const handleSendClick = async () => {
+    setIsSending(true);
+    try {
+      await onDownload();
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -100,22 +70,24 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
         </Button>
         <div className="flex space-x-2">
           <Button 
-            variant="outline" 
             size="sm"
-            onClick={copyToClipboard}
+            onClick={handleSendClick}
+            disabled={isSending}
           >
-            <Copy className="h-4 w-4 mr-2" /> Copy
-          </Button>
-          <Button 
-            size="sm"
-            onClick={onDownload}
-          >
-            <Download className="h-4 w-4 mr-2" /> Download
+            {isSending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" /> Send to Recruitment
+              </>
+            )}
           </Button>
         </div>
       </div>
 
-      <Card className="preview-card bg-white shadow-md border">
+      <Card className="preview-card bg-white shadow-md border select-none no-select no-copy" style={{ userSelect: 'none' }}>
         <CardHeader className="pb-0">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold mb-1">{personalInfo.firstName} {personalInfo.lastName}</h2>
