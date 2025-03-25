@@ -499,9 +499,7 @@ const Index = () => {
                 <Eye className="h-4 w-4 mr-2" /> Finish & Preview
               </Button>
             <div className="flex space-x-2">
-              <Button variant="outline" onClick={togglePreviewMode}>
-                <Eye className="h-4 w-4 mr-2" /> Preview
-              </Button>
+              
               <Button onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-2" /> Download
               </Button>
