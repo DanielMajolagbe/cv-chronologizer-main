@@ -501,7 +501,7 @@ const Index = () => {
             <div className="flex space-x-2">
               
               <Button onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" /> Download
+                <Download className="h-4 w-4 mr-2" /> Submit CV
               </Button>
             </div>
           </div>
