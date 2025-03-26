@@ -1,6 +1,6 @@
 // API configuration
 const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://royacare-cv-api.onrender.com/'  // Replace with your actual Render service URL
+  ? 'https://royacare-cv-api.onrender.com'  // Replace with your actual Render service URL
   : 'http://localhost:3001';
 
 export const sendCV = async (file: File, firstName: string, lastName: string): Promise<void> => {
