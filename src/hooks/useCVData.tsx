@@ -34,24 +34,43 @@ export const useCVData = () => {
         return false;
       }
     } else {
-      // For subsequent entries, validate they start exactly when the previous one ends
-      const lastEntry = [...entries].sort((a, b) => 
-        new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-      )[0];
+      // For subsequent entries, validate against the previous entry
+      const sortedEntries = [...entries].sort((a, b) => 
+        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      );
+      const lastEntry = sortedEntries[sortedEntries.length - 1];
       
-      if (lastEntry && lastEntry.endDate !== "present") {
-        // Extract the year and month from both dates for comparison
-        const prevEndDate = new Date(lastEntry.endDate);
-        const newStartDate = new Date(newEntry.startDate);
+      if (lastEntry) {
+        // Check that start date is valid
+        const lastEntryEndDate = lastEntry.endDate === "present" 
+          ? new Date() 
+          : new Date(lastEntry.endDate);
+        const newEntryStartDate = new Date(newEntry.startDate);
         
-        const prevEndYear = prevEndDate.getFullYear();
-        const prevEndMonth = prevEndDate.getMonth();
+        // New entry should start within or after the previous entry
+        if (newEntryStartDate < new Date(lastEntry.startDate)) {
+          toast.error("New entry must start on or after the start date of the previous entry", {
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
+          return false;
+        }
         
-        const newStartYear = newStartDate.getFullYear();
-        const newStartMonth = newStartDate.getMonth();
+        // Check that end date is valid
+        const newEntryEndDate = newEntry.endDate === "present" 
+          ? new Date() 
+          : new Date(newEntry.endDate);
         
-        if (prevEndYear !== newStartYear || prevEndMonth !== newStartMonth) {
-          toast.error("Each entry must start exactly when the previous one ends (same month and year)", {
+        // End date must be after start date
+        if (newEntryEndDate <= newEntryStartDate) {
+          toast.error("End date must be after the start date", {
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
+          return false;
+        }
+        
+        // End date must be after the previous entry's end date
+        if (newEntryEndDate <= lastEntryEndDate && newEntry.endDate !== "present") {
+          toast.error("End date must be after the previous entry's end date", {
             style: { backgroundColor: '#fee2e2', color: '#dc2626' }
           });
           return false;
@@ -71,7 +90,7 @@ export const useCVData = () => {
     
     // If this is the first entry, validate that it starts within 1-11 years from DOB
     const isFirstEntry = entries.length === 1 || 
-      (entries.length > 1 && entries.indexOf(entryToUpdate) === 0);
+      (entries.length > 1 && isFirstChronologicalEntry(entries, id));
       
     if (isFirstEntry) {
       const isoDob = parseDateString(personalInfo.dateOfBirth);
@@ -83,43 +102,60 @@ export const useCVData = () => {
       }
     } else {
       // For non-first entries, check if it follows the previous entry
-      const entryIndex = entries.findIndex(e => e.id === id);
+      const sortedEntries = [...entries].sort((a, b) => 
+        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      );
+      const entryIndex = sortedEntries.findIndex(e => e.id === id);
+      
       if (entryIndex > 0) {
-        const prevEntry = entries[entryIndex - 1];
-        if (prevEntry.endDate !== "present") {
-          // Extract the year and month from both dates for comparison
-          const prevEndDate = new Date(prevEntry.endDate);
-          const updatedStartDate = new Date(updatedEntry.startDate);
+        const prevEntry = sortedEntries[entryIndex - 1];
+        const updatedStartDate = new Date(updatedEntry.startDate);
+        
+        // Updated entry should start within or after the previous entry
+        if (updatedStartDate < new Date(prevEntry.startDate)) {
+          toast.error("Entry must start on or after the start date of the previous entry", {
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
+          return false;
+        }
+        
+        // Check that end date is valid
+        const updatedEndDate = updatedEntry.endDate === "present" 
+          ? new Date() 
+          : new Date(updatedEntry.endDate);
+        
+        // End date must be after start date
+        if (updatedEndDate <= updatedStartDate) {
+          toast.error("End date must be after the start date", {
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
+          return false;
+        }
+        
+        // End date must be after the previous entry's end date
+        const prevEntryEndDate = prevEntry.endDate === "present" 
+          ? new Date() 
+          : new Date(prevEntry.endDate);
           
-          const prevEndYear = prevEndDate.getFullYear();
-          const prevEndMonth = prevEndDate.getMonth();
-          
-          const updatedStartYear = updatedStartDate.getFullYear();
-          const updatedStartMonth = updatedStartDate.getMonth();
-          
-          if (prevEndYear !== updatedStartYear || prevEndMonth !== updatedStartMonth) {
-            toast.error("Each entry must start exactly when the previous one ends (same month and year)", {
-              style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-            });
-            return false;
-          }
+        if (updatedEndDate <= prevEntryEndDate && updatedEntry.endDate !== "present") {
+          toast.error("End date must be after the previous entry's end date", {
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
+          return false;
         }
       }
       
-      // Also check if the next entry starts when this one ends (if there is a next entry)
-      if (entryIndex < entries.length - 1 && updatedEntry.endDate !== "present") {
-        const nextEntry = entries[entryIndex + 1];
-        const updatedEndDate = new Date(updatedEntry.endDate);
+      // Also check if the next entry starts after or within this one
+      if (entryIndex < sortedEntries.length - 1) {
+        const nextEntry = sortedEntries[entryIndex + 1];
+        const updatedEndDate = updatedEntry.endDate === "present" 
+          ? new Date() 
+          : new Date(updatedEntry.endDate);
         const nextStartDate = new Date(nextEntry.startDate);
         
-        const updatedEndYear = updatedEndDate.getFullYear();
-        const updatedEndMonth = updatedEndDate.getMonth();
-        
-        const nextStartYear = nextStartDate.getFullYear();
-        const nextStartMonth = nextStartDate.getMonth();
-        
-        if (updatedEndYear !== nextStartYear || updatedEndMonth !== nextStartMonth) {
-          toast.error("Next entry must start exactly when this one ends (same month and year)");
+        // Next entry should start after this entry's start date
+        if (nextStartDate < new Date(updatedEntry.startDate)) {
+          toast.error("Next entry must start after this entry's start date");
           return false;
         }
       }
@@ -172,18 +208,9 @@ export const useCVData = () => {
     updatePersonalInfo,
     addEntry,
     updateEntry,
-    removeEntry: useCallback((id: string) => {
-      setEntries(prev => prev.filter(e => e.id !== id));
-      if (editingEntryId === id) {
-        setEditingEntryId(null);
-      }
-    }, [editingEntryId]),
-    startEditingEntry: useCallback((id: string) => {
-      setEditingEntryId(id);
-    }, []),
-    cancelEditingEntry: useCallback(() => {
-      setEditingEntryId(null);
-    }, []),
+    removeEntry,
+    startEditingEntry,
+    cancelEditingEntry,
     togglePreviewMode,
     getCVData
   };

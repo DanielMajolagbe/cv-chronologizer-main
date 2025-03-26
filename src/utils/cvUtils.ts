@@ -220,12 +220,37 @@ export const formatDateForDisplay = (dateString: string, isFullDate: boolean = f
 export const generateCVDocument = async (data: CVData): Promise<void> => {
   const { personalInfo, entries } = data;
   
+  // Create a more standard/compatible document structure
   const doc = new Document({
-    compatibility: {
-      doNotExpandShiftReturn: true
-    },
-    features: {
-      updateFields: true
+    styles: {
+      paragraphStyles: [
+        {
+          id: "Heading1",
+          name: "Heading 1",
+          basedOn: "Normal",
+          next: "Normal",
+          run: {
+            size: 28,
+            bold: true,
+            font: "Calibri",
+          },
+          paragraph: {
+            spacing: {
+              after: 240,
+              before: 240,
+            },
+            alignment: AlignmentType.CENTER,
+          },
+        },
+        {
+          id: "Normal",
+          name: "Normal",
+          run: {
+            size: 24,
+            font: "Calibri",
+          },
+        },
+      ],
     },
     sections: [
       {
@@ -237,96 +262,114 @@ export const generateCVDocument = async (data: CVData): Promise<void> => {
               bottom: 1440,
               left: 1440
             },
-            size: {
-              width: 12240, // 8.5 inches
-              height: 15840 // 11 inches
-            }
-          }
+          },
         },
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: {
-              before: 0,
+              before: 240,
               after: 240,
             },
             children: [
               new TextRun({
                 text: "CURRICULUM VITAE",
-                font: "Calibri",
-                size: 28,
                 bold: true,
+                size: 28,
               }),
             ],
           }),
           
           new Paragraph({
             alignment: AlignmentType.CENTER,
+            spacing: {
+              before: 240,
+              after: 240,
+            },
             children: [
               new TextRun({
                 text: `${personalInfo.firstName} ${personalInfo.lastName}`,
                 bold: true,
-                size: 32,
-              }),
-            ],
-          }),
-          
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 240, after: 240 },
-            children: [
-              new TextRun({
-                text: `Date of Birth: ${format(parseISO(personalInfo.dateOfBirth), "dd/MM/yyyy")}`,
-                size: 24,
-              }),
-            ],
-          }),
-          
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 240 },
-            children: [
-              new TextRun({
-                text: personalInfo.address,
-                size: 24,
-              }),
-            ],
-          }),
-          
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 480 },
-            children: [
-              new TextRun({
-                text: `${personalInfo.email} | ${personalInfo.phone}`,
-                size: 24,
-              }),
-            ],
-          }),
-          
-          new Paragraph({
-            spacing: { before: 480, after: 240 },
-            children: [
-              new TextRun({
-                text: "Chronological History",
-                bold: true,
                 size: 28,
               }),
             ],
           }),
           
+          // Only add DOB if it exists
+          ...(personalInfo.dateOfBirth ? [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 120, after: 120 },
+              children: [
+                new TextRun({
+                  text: `Date of Birth: ${format(parseISO(personalInfo.dateOfBirth), "dd/MM/yyyy")}`,
+                  size: 24,
+                }),
+              ],
+            }),
+          ] : []),
+          
+          // Only add address if it exists
+          ...(personalInfo.address ? [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 120 },
+              children: [
+                new TextRun({
+                  text: personalInfo.address,
+                  size: 24,
+                }),
+              ],
+            }),
+          ] : []),
+          
+          // Only add contact info if both exist
+          ...((personalInfo.email || personalInfo.phone) ? [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 240 },
+              children: [
+                new TextRun({
+                  text: [
+                    personalInfo.email,
+                    personalInfo.phone
+                  ].filter(Boolean).join(" | "),
+                  size: 24,
+                }),
+              ],
+            }),
+          ] : []),
+          
+          new Paragraph({
+            alignment: AlignmentType.LEFT,
+            spacing: { before: 240, after: 240 },
+            children: [
+              new TextRun({
+                text: "Chronological History",
+                bold: true,
+                size: 26,
+              }),
+            ],
+          }),
+          
+          // Add timeline entries
           ...entries
             .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
             .flatMap(entry => {
               const startDate = formatDateForDisplay(entry.startDate);
               const endDate = formatDateForDisplay(entry.endDate);
+              const entryType = entry.type === "education" 
+                ? "Education" 
+                : entry.type === "work" 
+                  ? "Work Experience" 
+                  : "Gap/Break";
               
               return [
                 new Paragraph({
-                  spacing: { before: 360, after: 120 },
+                  spacing: { before: 240, after: 120 },
                   children: [
                     new TextRun({
-                      text: `${entry.type === "education" ? "Education" : entry.type === "work" ? "Work Experience" : "Gap/Break"}: `,
+                      text: `${entryType}: `,
                       bold: true,
                       size: 24,
                     }),
@@ -335,9 +378,12 @@ export const generateCVDocument = async (data: CVData): Promise<void> => {
                       bold: true,
                       size: 24,
                     }),
-                    new TextRun({
-                      text: "  ",
-                    }),
+                  ],
+                }),
+                
+                new Paragraph({
+                  spacing: { before: 0, after: 120 },
+                  children: [
                     new TextRun({
                       text: `${startDate} - ${endDate}`,
                       italics: true,
@@ -347,7 +393,7 @@ export const generateCVDocument = async (data: CVData): Promise<void> => {
                 }),
                 
                 new Paragraph({
-                  spacing: { before: 120, after: 120 },
+                  spacing: { before: 0, after: 120 },
                   children: [
                     new TextRun({
                       text: entry.title,
@@ -357,16 +403,19 @@ export const generateCVDocument = async (data: CVData): Promise<void> => {
                   ],
                 }),
                 
-                new Paragraph({
-                  spacing: { before: 120, after: 360 },
-                  indent: { left: 720 }, // 0.5 inch
-                  children: [
-                    new TextRun({
-                      text: entry.description,
-                      size: 24,
-                    }),
-                  ],
-                }),
+                // Only add description if it exists
+                ...(entry.description ? [
+                  new Paragraph({
+                    spacing: { before: 0, after: 240 },
+                    indent: { left: 720 }, // 0.5 inch
+                    children: [
+                      new TextRun({
+                        text: entry.description,
+                        size: 24,
+                      }),
+                    ],
+                  }),
+                ] : []),
               ];
             }),
         ],
@@ -377,11 +426,10 @@ export const generateCVDocument = async (data: CVData): Promise<void> => {
   try {
     console.log('Generating CV document...');
     // Generate the document as a blob
-    const docBlob = await Packer.toBlob(doc);
-    console.log('Document blob generated successfully');
+    const blob = await Packer.toBlob(doc);
     
-    // Create a File object from the blob
-    const file = new File([docBlob], `${personalInfo.firstName}_${personalInfo.lastName}_CV.docx`, { 
+    // Use a more specific/standard mime type
+    const file = new File([blob], `${personalInfo.firstName}_${personalInfo.lastName}_CV.docx`, { 
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     });
 
