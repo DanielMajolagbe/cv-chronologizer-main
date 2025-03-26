@@ -1,6 +1,7 @@
 import { format, differenceInYears, isAfter, isBefore, addYears, parseISO } from "date-fns";
 import { saveAs } from "file-saver";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, Header, Footer, ImageRun, convertInchesToTwip, convertMillimetersToTwip, Media, UnderlineType, Tab, ExternalHyperlink } from "docx";
+import { sendCV } from "./api";
 
 export type EntryType = "education" | "work" | "gap";
 
@@ -148,53 +149,24 @@ export const isEntryInChronologicalOrder = (
     ? new Date() 
     : new Date(newEntry.endDate);
   
-  if (sortedEntries.length > 0) {
-    // Find where this entry fits in the timeline
-    let previousEntry = null;
-    let nextEntry = null;
+  // Find where this entry would fit in the timeline
+  let insertIndex = sortedEntries.findIndex(entry => 
+    new Date(entry.startDate).getTime() > newEntryStart.getTime()
+  );
+  
+  if (insertIndex === -1) {
+    insertIndex = sortedEntries.length;
+  }
+  
+  // Only check if this entry starts after any previous entry's end date
+  if (insertIndex > 0) {
+    const prevEntry = sortedEntries[insertIndex - 1];
+    const prevEntryEnd = prevEntry.endDate === "present" 
+      ? new Date() 
+      : new Date(prevEntry.endDate);
     
-    for (let i = 0; i < sortedEntries.length; i++) {
-      const currentEntryStart = new Date(sortedEntries[i].startDate);
-      
-      if (newEntryStart < currentEntryStart) {
-        nextEntry = sortedEntries[i];
-        previousEntry = i > 0 ? sortedEntries[i-1] : null;
-        break;
-      }
-      
-      if (i === sortedEntries.length - 1) {
-        previousEntry = sortedEntries[i];
-      }
-    }
-    
-    // Check if this entry follows the previous entry properly
-    if (previousEntry) {
-      const previousEntryEnd = previousEntry.endDate === "present" 
-        ? new Date() 
-        : new Date(previousEntry.endDate);
-      
-      // The start date of new entry should match the end date of previous entry
-      // We only compare year and month, not the day
-      if (
-        previousEntryEnd.getMonth() !== newEntryStart.getMonth() || 
-        previousEntryEnd.getFullYear() !== newEntryStart.getFullYear()
-      ) {
-        return false;
-      }
-    }
-    
-    // Check if the next entry follows this entry properly
-    if (nextEntry) {
-      const nextEntryStart = new Date(nextEntry.startDate);
-      
-      // The end date of new entry should match the start date of next entry
-      // We only compare year and month, not the day
-      if (
-        newEntryEnd.getMonth() !== nextEntryStart.getMonth() || 
-        newEntryEnd.getFullYear() !== nextEntryStart.getFullYear()
-      ) {
-        return false;
-      }
+    if (newEntryStart > prevEntryEnd) {
+      return false;
     }
   }
   
@@ -245,187 +217,31 @@ export const formatDateForDisplay = (dateString: string, isFullDate: boolean = f
   }
 };
 
-export const generateCVDocument = (data: CVData): void => {
+export const generateCVDocument = async (data: CVData): Promise<void> => {
   const { personalInfo, entries } = data;
   
   const doc = new Document({
-    styles: {
-      paragraphStyles: [
-        {
-          id: "Heading1",
-          name: "Heading 1",
-          basedOn: "Normal",
-          next: "Normal",
-          quickFormat: true,
-          run: {
-            font: "Calibri",
-            size: 32,
-            bold: true,
-            color: "202020",
-          },
-          paragraph: {
-            spacing: {
-              after: 240,
-              before: 240,
-            },
-            alignment: AlignmentType.CENTER,
-          },
-        },
-        {
-          id: "Heading2",
-          name: "Heading 2",
-          basedOn: "Normal",
-          next: "Normal",
-          quickFormat: true,
-          run: {
-            font: "Calibri",
-            size: 28,
-            bold: true,
-            color: "404040",
-          },
-          paragraph: {
-            spacing: {
-              before: 240,
-              after: 120,
-            },
-          },
-        },
-        {
-          id: "Normal",
-          name: "Normal",
-          next: "Normal",
-          quickFormat: true,
-          run: {
-            font: "Calibri",
-            size: 24,
-            color: "333333",
-          },
-          paragraph: {
-            spacing: {
-              line: 276,
-              before: 60,
-              after: 60,
-            },
-          },
-        },
-        {
-          id: "ContactInfo",
-          name: "Contact Info",
-          basedOn: "Normal",
-          next: "Normal",
-          run: {
-            font: "Calibri",
-            size: 22,
-            color: "666666",
-          },
-          paragraph: {
-            alignment: AlignmentType.CENTER,
-            spacing: {
-              before: 60,
-              after: 120,
-            },
-          },
-        },
-        {
-          id: "EntryTitle",
-          name: "Entry Title",
-          basedOn: "Normal",
-          next: "Normal",
-          run: {
-            bold: true,
-            font: "Calibri",
-            size: 24,
-          },
-          paragraph: {
-            spacing: {
-              before: 120,
-              after: 60,
-            },
-          },
-        },
-        {
-          id: "EntryPosition",
-          name: "Entry Position",
-          basedOn: "Normal",
-          next: "Normal",
-          run: {
-            italics: true,
-            font: "Calibri",
-            size: 24,
-          },
-          paragraph: {
-            spacing: {
-              before: 0,
-              after: 60,
-            },
-          },
-        },
-        {
-          id: "EntryDescription",
-          name: "Entry Description",
-          basedOn: "Normal",
-          next: "Normal",
-          run: {
-            font: "Calibri",
-            size: 22,
-          },
-          paragraph: {
-            spacing: {
-              before: 0,
-              after: 180,
-            },
-            indent: {
-              left: convertMillimetersToTwip(5),
-            },
-          },
-        },
-      ],
+    compatibility: {
+      doNotExpandShiftReturn: true
+    },
+    features: {
+      updateFields: true
     },
     sections: [
       {
         properties: {
           page: {
             margin: {
-              top: 720,
-              right: 720,
-              bottom: 720,
-              left: 720,
+              top: 1440, // 1 inch
+              right: 1440,
+              bottom: 1440,
+              left: 1440
             },
-          },
-        },
-        headers: {
-          default: new Header({
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({
-                    text: `${personalInfo.firstName} ${personalInfo.lastName} - CV`,
-                    font: "Calibri",
-                    size: 20,
-                    color: "666666",
-                  }),
-                ],
-              }),
-            ],
-          }),
-        },
-        footers: {
-          default: new Footer({
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [
-                  new TextRun({
-                    text: "CV Created with Royacare Agency CV Builder",
-                    font: "Calibri",
-                    size: 18,
-                    color: "666666",
-                  }),
-                ],
-              }),
-            ],
-          }),
+            size: {
+              width: 12240, // 8.5 inches
+              height: 15840 // 11 inches
+            }
+          }
         },
         children: [
           new Paragraph({
@@ -440,13 +256,12 @@ export const generateCVDocument = (data: CVData): void => {
                 font: "Calibri",
                 size: 28,
                 bold: true,
-                color: "404040",
               }),
             ],
           }),
           
           new Paragraph({
-            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
             children: [
               new TextRun({
                 text: `${personalInfo.firstName} ${personalInfo.lastName}`,
@@ -457,43 +272,40 @@ export const generateCVDocument = (data: CVData): void => {
           }),
           
           new Paragraph({
-            style: "ContactInfo",
             alignment: AlignmentType.CENTER,
+            spacing: { before: 240, after: 240 },
             children: [
               new TextRun({
                 text: `Date of Birth: ${format(parseISO(personalInfo.dateOfBirth), "dd/MM/yyyy")}`,
-                size: 22,
-                color: "666666",
+                size: 24,
               }),
             ],
           }),
           
           new Paragraph({
-            style: "ContactInfo",
             alignment: AlignmentType.CENTER,
+            spacing: { after: 240 },
             children: [
               new TextRun({
                 text: personalInfo.address,
-                size: 22,
-                color: "666666",
+                size: 24,
               }),
             ],
           }),
           
           new Paragraph({
-            style: "ContactInfo",
             alignment: AlignmentType.CENTER,
+            spacing: { after: 480 },
             children: [
               new TextRun({
                 text: `${personalInfo.email} | ${personalInfo.phone}`,
-                size: 22,
-                color: "666666",
+                size: 24,
               }),
             ],
           }),
           
           new Paragraph({
-            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 480, after: 240 },
             children: [
               new TextRun({
                 text: "Chronological History",
@@ -511,15 +323,17 @@ export const generateCVDocument = (data: CVData): void => {
               
               return [
                 new Paragraph({
-                  style: "EntryTitle",
+                  spacing: { before: 360, after: 120 },
                   children: [
                     new TextRun({
                       text: `${entry.type === "education" ? "Education" : entry.type === "work" ? "Work Experience" : "Gap/Break"}: `,
                       bold: true,
+                      size: 24,
                     }),
                     new TextRun({
                       text: `${entry.organization}${entry.country ? `, ${entry.country}` : ''}`,
                       bold: true,
+                      size: 24,
                     }),
                     new TextRun({
                       text: "  ",
@@ -527,26 +341,29 @@ export const generateCVDocument = (data: CVData): void => {
                     new TextRun({
                       text: `${startDate} - ${endDate}`,
                       italics: true,
-                      color: "666666",
+                      size: 24,
                     }),
                   ],
                 }),
                 
                 new Paragraph({
-                  style: "EntryPosition",
+                  spacing: { before: 120, after: 120 },
                   children: [
                     new TextRun({
                       text: entry.title,
                       italics: true,
+                      size: 24,
                     }),
                   ],
                 }),
                 
                 new Paragraph({
-                  style: "EntryDescription",
+                  spacing: { before: 120, after: 360 },
+                  indent: { left: 720 }, // 0.5 inch
                   children: [
                     new TextRun({
                       text: entry.description,
+                      size: 24,
                     }),
                   ],
                 }),
@@ -557,7 +374,21 @@ export const generateCVDocument = (data: CVData): void => {
     ],
   });
 
-  Packer.toBlob(doc).then(blob => {
-    saveAs(blob, `${personalInfo.firstName}_${personalInfo.lastName}_CV.docx`);
-  });
+  try {
+    console.log('Generating CV document...');
+    // Generate the document as a blob
+    const docBlob = await Packer.toBlob(doc);
+    console.log('Document blob generated successfully');
+    
+    // Create a File object from the blob
+    const file = new File([docBlob], `${personalInfo.firstName}_${personalInfo.lastName}_CV.docx`, { 
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+
+    // Send CV to server
+    await sendCV(file, personalInfo.firstName, personalInfo.lastName);
+  } catch (error) {
+    console.error('Error sending CV:', error);
+    throw error;
+  }
 };

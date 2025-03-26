@@ -50,9 +50,19 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
   };
 
   const handleSendClick = async () => {
+    if (!personalInfo.firstName || !personalInfo.lastName) {
+      toast.error("Please fill in your name before sending the CV");
+      return;
+    }
+
     setIsSending(true);
     try {
+      console.log('Sending CV for', personalInfo.firstName, personalInfo.lastName);
       await onDownload();
+      toast.success(`CV Submitted  `);
+    } catch (error) {
+      console.error('Error sending CV:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to send CV. Please try again.");
     } finally {
       setIsSending(false);
     }
@@ -68,23 +78,21 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
         >
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Editor
         </Button>
-        <div className="flex space-x-2">
-          <Button 
-            size="sm"
-            onClick={handleSendClick}
-            disabled={isSending}
-          >
-            {isSending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-2" /> Send to Recruitment
-              </>
-            )}
-          </Button>
-        </div>
+        <Button 
+          size="sm"
+          onClick={handleSendClick}
+          disabled={isSending}
+        >
+          {isSending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending CV...
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4 mr-2" /> Send to Recruitment
+            </>
+          )}
+        </Button>
       </div>
 
       <Card className="preview-card bg-white shadow-md border select-none no-select no-copy" style={{ userSelect: 'none' }}>
