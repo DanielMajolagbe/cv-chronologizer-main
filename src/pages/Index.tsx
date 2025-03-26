@@ -500,9 +500,7 @@ const Index = () => {
               </Button>
             <div className="flex space-x-2">
               
-              <Button onClick={handleDownload}>
-                <Send className="h-4 w-4 mr-2" /> Submit
-              </Button>
+              
             </div>
           </div>
         </div>
