@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Eye, ArrowRight, Download } from "lucide-react";
+import { Plus, Eye, ArrowRight, Download, Send } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DatePicker, MonthYearPicker } from "@/components/ui/month-year-picker";
@@ -215,7 +215,7 @@ const Index = () => {
 
   const handleDownload = () => {
     generateCVDocument(getCVData());
-    toast.success("CV downloading...");
+    toast.success("CV Submitted");
   };
 
   const handleGapsClick = () => {
@@ -501,7 +501,7 @@ const Index = () => {
             <div className="flex space-x-2">
               
               <Button onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" /> Submit CV
+                <Send className="h-4 w-4 mr-2" /> Submit
               </Button>
             </div>
           </div>

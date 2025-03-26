@@ -89,7 +89,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
             </>
           ) : (
             <>
-              <Send className="h-4 w-4 mr-2" /> Send to Recruitment
+              <Send className="h-4 w-4 mr-2" /> Submit CV
             </>
           )}
         </Button>
