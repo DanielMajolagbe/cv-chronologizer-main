@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { CVData, formatDateForDisplay, parseDateString, generateCVDocument } from "@/utils/cvUtils";
+import { CVData, formatDateForDisplay, parseDateString, sendCVDocument } from "@/utils/cvUtils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, Download, ArrowLeft, Loader2 } from "lucide-react";
+import { Send, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import "@/styles/no-select.css";
 
@@ -17,7 +17,6 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const { personalInfo, entries } = data;
   const [isSending, setIsSending] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     // Add entrance animation
@@ -59,31 +58,13 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
     setIsSending(true);
     try {
       console.log('Sending CV for', personalInfo.firstName, personalInfo.lastName);
-      await onDownload();
+      await sendCVDocument(data);
       toast.success(`CV Submitted`);
     } catch (error) {
       console.error('Error sending CV:', error);
       toast.error(error instanceof Error ? error.message : "Failed to send CV. Please try again.");
     } finally {
       setIsSending(false);
-    }
-  };
-
-  const handleDownloadClick = async () => {
-    if (!personalInfo.firstName || !personalInfo.lastName) {
-      toast.error("Please fill in your name before downloading the CV");
-      return;
-    }
-
-    setIsDownloading(true);
-    try {
-      await generateCVDocument(data);
-      toast.success(`CV Downloaded`);
-    } catch (error) {
-      console.error('Error downloading CV:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to download CV. Please try again.");
-    } finally {
-      setIsDownloading(false);
     }
   };
 
@@ -145,24 +126,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button 
-            variant="outline" 
-            onClick={handleDownloadClick}
-            disabled={isDownloading}
-          >
-            {isDownloading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Downloading...
-              </>
-            ) : (
-              <>
-                <Download className="mr-2 h-4 w-4" />
-                Download CV
-              </>
-            )}
-          </Button>
+        <CardFooter className="flex justify-center">
           <Button 
             onClick={handleSendClick}
             disabled={isSending}

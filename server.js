@@ -3,9 +3,14 @@ import cors from 'cors';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import fileUpload from 'express-fileupload';
+import fs from 'fs';
+import path from 'path';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -47,8 +52,9 @@ app.use(cors({
 app.use(express.json());
 app.use(fileUpload({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
-  useTempFiles: true,
-  tempFileDir: '/tmp/'
+  useTempFiles: false, // Don't use temp files to avoid potential issues
+  debug: true, // Enable debug for troubleshooting
+  preserveExtension: true // Keep file extensions
 }));
 
 // Endpoint to send CV via email
@@ -64,17 +70,28 @@ app.post('/api/send-cv', async (req, res) => {
     const cvFile = req.files.cv;
     const { firstName, lastName } = req.body;
     
-    console.log(`Received CV for ${firstName} ${lastName}`);
+    console.log(`Received CV for ${firstName} ${lastName} (${cvFile.size} bytes, type: ${cvFile.mimetype})`);
 
     if (!firstName || !lastName) {
       console.error('Missing required fields');
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    console.log('Sending email...');
+    if (cvFile.size === 0) {
+      console.error('CV file is empty');
+      return res.status(400).json({ error: 'CV file is empty' });
+    }
+
+    // Create a temporary file to ensure proper handling
+    const tempFilePath = path.join(__dirname, `${firstName}_${lastName}_CV.pdf`);
+    await cvFile.mv(tempFilePath);
+    
+    console.log(`Saved temporary file to ${tempFilePath}`);
+
+    console.log('Sending email with attachment...');
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'CV Chronologizer <recruitment@royacare.co.uk>',
-      to: 'recruitment@royacare.co.uk',
+      to: process.env.EMAIL_TO || 'majolagbedaniel@gmail.com',
       subject: `New CV Submission - ${firstName} ${lastName}`,
       html: `
         <p>Please find attached the CV for ${firstName} ${lastName}.</p>
@@ -82,15 +99,19 @@ app.post('/api/send-cv', async (req, res) => {
       `,
       attachments: [
         {
-          filename: `${firstName}_${lastName}_CV.docx`,
-          content: cvFile.data,
-          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          filename: `${firstName}_${lastName}_CV.pdf`,
+          path: tempFilePath,
+          contentType: 'application/pdf'
         }
       ]
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.messageId);
+    console.log('Email sent successfully:', info.messageId);
+    
+    // Clean up the temporary file
+    fs.unlinkSync(tempFilePath);
+    console.log(`Temporary file ${tempFilePath} removed`);
     
     if (!info || !info.messageId) {
       throw new Error('Failed to send email');

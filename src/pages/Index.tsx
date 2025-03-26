@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useCVData } from "@/hooks/useCVData";
 import { 
   getDefaultStartMonth, 
-  generateCVDocument, 
+  sendCVDocument,
   TimelineEntry as TimelineEntryType, 
   identifyGaps,
   isEntryInChronologicalOrder 
@@ -214,7 +214,7 @@ const Index = () => {
   };
 
   const handleDownload = () => {
-    generateCVDocument(getCVData());
+    sendCVDocument(getCVData());
     toast.success("CV Submitted");
   };
 

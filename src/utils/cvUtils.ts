@@ -2,6 +2,8 @@ import { format, differenceInYears, isAfter, isBefore, addYears, parseISO } from
 import { saveAs } from "file-saver";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, Header, Footer, ImageRun, convertInchesToTwip, convertMillimetersToTwip, Media, UnderlineType, Tab, ExternalHyperlink } from "docx";
 import { sendCV } from "./api";
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export type EntryType = "education" | "work" | "gap";
 
@@ -217,7 +219,7 @@ export const formatDateForDisplay = (dateString: string, isFullDate: boolean = f
   }
 };
 
-export const generateCVDocument = async (data: CVData): Promise<void> => {
+export const generateCVDocument = async (data: CVData, shouldDownload: boolean = false): Promise<Blob> => {
   const { personalInfo, entries } = data;
   
   // Create a more standard/compatible document structure
@@ -435,19 +437,186 @@ export const generateCVDocument = async (data: CVData): Promise<void> => {
     // Generate the document as a blob
     const blob = await Packer.toBlob(doc);
     
-    // Save the file locally first so user can see it
-    const fileName = `${personalInfo.firstName}_${personalInfo.lastName}_CV.docx`;
-    saveAs(blob, fileName);
+    // Only save locally if download is requested
+    if (shouldDownload) {
+      const fileName = `${personalInfo.firstName}_${personalInfo.lastName}_CV.docx`;
+      saveAs(blob, fileName);
+    }
     
-    // Use a more specific/standard mime type for sending via email
-    const file = new File([blob], fileName, { 
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    });
-
-    // Send CV to server
-    await sendCV(file, personalInfo.firstName, personalInfo.lastName);
+    return blob;
   } catch (error) {
-    console.error('Error generating or sending CV:', error);
+    console.error('Error generating CV:', error);
+    throw error;
+  }
+};
+
+// Function for just downloading the CV locally
+export const downloadCVDocument = async (data: CVData): Promise<void> => {
+  try {
+    await generateCVDocument(data, true);
+    console.log('CV downloaded successfully');
+  } catch (error) {
+    console.error('Error downloading CV:', error);
+    throw error;
+  }
+};
+
+// Function to generate a PDF CV
+export const generatePDFDocument = async (data: CVData): Promise<Blob> => {
+  const { personalInfo, entries } = data;
+  
+  // Create a new PDF document (A4 size in portrait orientation)
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+  
+  // Set document properties
+  pdf.setProperties({
+    title: `${personalInfo.firstName} ${personalInfo.lastName} CV`,
+    author: 'CV Chronologizer',
+    creator: 'CV Chronologizer',
+    subject: 'Curriculum Vitae'
+  });
+  
+  // Add document title
+  pdf.setFontSize(20);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('CURRICULUM VITAE', pdf.internal.pageSize.width / 2, 20, { align: 'center' });
+  
+  // Add personal information
+  pdf.setFontSize(18);
+  pdf.text(`${personalInfo.firstName} ${personalInfo.lastName}`, pdf.internal.pageSize.width / 2, 30, { align: 'center' });
+  
+  // Personal details in normal font
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'normal');
+  
+  let yPosition = 40;
+  const lineHeight = 8;
+  
+  // Add DOB if it exists
+  if (personalInfo.dateOfBirth) {
+    try {
+      const dobDate = parseISO(parseDateString(personalInfo.dateOfBirth));
+      pdf.text(`Date of Birth: ${format(dobDate, "dd/MM/yyyy")}`, pdf.internal.pageSize.width / 2, yPosition, { align: 'center' });
+      yPosition += lineHeight;
+    } catch (error) {
+      console.error('Error formatting DOB:', error);
+    }
+  }
+  
+  // Add address if it exists
+  if (personalInfo.address) {
+    pdf.text(personalInfo.address, pdf.internal.pageSize.width / 2, yPosition, { align: 'center' });
+    yPosition += lineHeight;
+  }
+  
+  // Add contact info if it exists
+  if (personalInfo.email || personalInfo.phone) {
+    const contactInfo = [
+      personalInfo.email,
+      personalInfo.phone
+    ].filter(Boolean).join(' | ');
+    
+    pdf.text(contactInfo, pdf.internal.pageSize.width / 2, yPosition, { align: 'center' });
+    yPosition += lineHeight * 2;
+  }
+  
+  // Add "Chronological History" heading
+  pdf.setFontSize(16);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Chronological History', 20, yPosition);
+  yPosition += lineHeight * 1.5;
+  
+  // Sort entries chronologically
+  const sortedEntries = [...entries].sort((a, b) => 
+    new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  );
+  
+  // Add each entry
+  pdf.setFontSize(12);
+  
+  for (const entry of sortedEntries) {
+    const startDate = formatDateForDisplay(entry.startDate);
+    const endDate = formatDateForDisplay(entry.endDate);
+    const dateRange = `${startDate} - ${endDate}`;
+    
+    const entryType = entry.type === "education" 
+      ? "Education" 
+      : entry.type === "work" 
+        ? "Work Experience" 
+        : "Gap/Break";
+    
+    // Entry type and organization
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`${entryType}: ${entry.organization}${entry.country ? `, ${entry.country}` : ''}`, 20, yPosition);
+    yPosition += lineHeight;
+    
+    // Date range
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(dateRange, 20, yPosition);
+    yPosition += lineHeight;
+    
+    // Title/position
+    pdf.text(entry.title, 20, yPosition);
+    yPosition += lineHeight;
+    
+    // Description (with indentation)
+    if (entry.description) {
+      pdf.setFont('helvetica', 'normal');
+      
+      // Split description into multiple lines if it's too long
+      const textLines = pdf.splitTextToSize(entry.description, pdf.internal.pageSize.width - 50);
+      
+      // Check if we need a new page for the description
+      if (yPosition + (textLines.length * lineHeight) > pdf.internal.pageSize.height - 20) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+      
+      pdf.text(textLines, 30, yPosition);
+      yPosition += textLines.length * lineHeight;
+    }
+    
+    // Add spacing between entries
+    yPosition += lineHeight;
+    
+    // Check if we need a new page for the next entry
+    if (yPosition > pdf.internal.pageSize.height - 30) {
+      pdf.addPage();
+      yPosition = 20;
+    }
+  }
+  
+  // Return the PDF as a blob
+  const pdfBlob = pdf.output('blob');
+  return pdfBlob;
+};
+
+// Function for sending the CV via email without downloading
+export const sendCVDocument = async (data: CVData): Promise<void> => {
+  try {
+    console.log('Preparing CV for email submission...');
+    
+    // Generate PDF instead of DOCX
+    console.log('Generating PDF document for email...');
+    const pdfBlob = await generatePDFDocument(data);
+    
+    // Create file from blob
+    const fileName = `${data.personalInfo.firstName}_${data.personalInfo.lastName}_CV.pdf`;
+    const file = new File([pdfBlob], fileName, { 
+      type: 'application/pdf',
+      lastModified: new Date().getTime()
+    });
+    
+    // Send to server
+    console.log('Sending CV document to server...');
+    await sendCV(file, data.personalInfo.firstName, data.personalInfo.lastName);
+    console.log('CV sent successfully');
+  } catch (error) {
+    console.error('Error sending CV document:', error);
     throw error;
   }
 };
