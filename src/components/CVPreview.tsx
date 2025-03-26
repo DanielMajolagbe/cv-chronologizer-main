@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { CVData, formatDateForDisplay, parseDateString } from "@/utils/cvUtils";
+import { CVData, formatDateForDisplay, parseDateString, generateCVDocument } from "@/utils/cvUtils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, Copy, ArrowLeft, Loader2 } from "lucide-react";
+import { Send, Download, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import "@/styles/no-select.css";
 
@@ -17,6 +17,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const { personalInfo, entries } = data;
   const [isSending, setIsSending] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     // Add entrance animation
@@ -59,7 +60,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
     try {
       console.log('Sending CV for', personalInfo.firstName, personalInfo.lastName);
       await onDownload();
-      toast.success(`CV Submitted  `);
+      toast.success(`CV Submitted`);
     } catch (error) {
       console.error('Error sending CV:', error);
       toast.error(error instanceof Error ? error.message : "Failed to send CV. Please try again.");
@@ -68,85 +69,116 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
     }
   };
 
-  return (
-    <div ref={previewRef} className="max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onBack}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Editor
-        </Button>
-        <Button 
-          size="sm"
-          onClick={handleSendClick}
-          disabled={isSending}
-        >
-          {isSending ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending CV...
-            </>
-          ) : (
-            <>
-              <Send className="h-4 w-4 mr-2" /> Submit CV
-            </>
-          )}
-        </Button>
-      </div>
+  const handleDownloadClick = async () => {
+    if (!personalInfo.firstName || !personalInfo.lastName) {
+      toast.error("Please fill in your name before downloading the CV");
+      return;
+    }
 
-      <Card className="preview-card bg-white shadow-md border select-none no-select no-copy" style={{ userSelect: 'none' }}>
-        <CardHeader className="pb-0">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold mb-1">{personalInfo.firstName} {personalInfo.lastName}</h2>
-            <div className="text-center text-muted-foreground">
-              <p>Date of Birth: {formatDOB(personalInfo.dateOfBirth)}</p>
-              {personalInfo.address && <p>{personalInfo.address}</p>}
-              <p>{personalInfo.email} | {personalInfo.phone}</p>
-            </div>
-          </div>
+    setIsDownloading(true);
+    try {
+      await generateCVDocument(data);
+      toast.success(`CV Downloaded`);
+    } catch (error) {
+      console.error('Error downloading CV:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to download CV. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-4" ref={previewRef}>
+      <Button 
+        className="mb-4" 
+        variant="outline" 
+        onClick={onBack}
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
+      </Button>
+      
+      <Card className="border shadow-lg mb-6 no-select">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold uppercase">Curriculum Vitae</CardTitle>
         </CardHeader>
-        
-        <CardContent className="py-6">
-          <h2 className="text-xl font-semibold mb-4 border-b pb-2"></h2>
+        <CardContent className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-xl font-bold">{personalInfo.firstName} {personalInfo.lastName}</h2>
+            {personalInfo.dateOfBirth && (
+              <p className="text-sm">Date of Birth: {formatDOB(personalInfo.dateOfBirth)}</p>
+            )}
+            {personalInfo.address && (
+              <p className="text-sm">{personalInfo.address}</p>
+            )}
+            {(personalInfo.email || personalInfo.phone) && (
+              <p className="text-sm">
+                {personalInfo.email && personalInfo.email}
+                {personalInfo.email && personalInfo.phone && " | "}
+                {personalInfo.phone && personalInfo.phone}
+              </p>
+            )}
+          </div>
           
-          {entries.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4">No entries added yet</p>
-          ) : (
-            <div className="space-y-6">
-              {entries.map((entry, index) => (
-                <div key={entry.id} className="cv-entry">
-                  <div className="flex justify-between items-start mb-1">
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Chronological History</h3>
+            <div className="space-y-4">
+              {entries
+                .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                .map((entry) => (
+                  <div key={entry.id} className="border-b pb-3">
                     <div>
-                      <span className="font-semibold">
+                      <span className="font-medium">
                         {entry.type === "education" ? "Education" : entry.type === "work" ? "Work Experience" : "Gap/Break"}:
                       </span>{" "}
-                      {entry.type !== "gap" && (
-                        <span>
-                          {entry.organization}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <span className="text-muted-foreground">
-                        {formatDateForDisplay(entry.startDate)} - {formatDateForDisplay(entry.endDate)}
+                      <span className="font-medium">
+                        {entry.organization}
+                        {entry.country && `, ${entry.country}`}
                       </span>
                     </div>
+                    <div className="text-sm italic">
+                      {formatDateForDisplay(entry.startDate)} - {formatDateForDisplay(entry.endDate)}
+                    </div>
+                    <div className="text-sm italic mb-2">{entry.title}</div>
+                    <div className="text-sm pl-4">{entry.description}</div>
                   </div>
-                  {entry.type !== "gap" ? (
-                    <p className="font-medium">{entry.title}</p>
-                  ) : (
-                    <p className="font-medium">Gap/Break Period</p>
-                  )}
-                  <p className="text-muted-foreground">{entry.description}</p>
-                </div>
-              ))}
+                ))}
             </div>
-          )}
+          </div>
         </CardContent>
-        
-        <CardFooter className="border-t pt-6 text-center text-sm text-muted-foreground">
-          CV Created with Royacare Agency CV Builder
+        <CardFooter className="flex justify-between">
+          <Button 
+            variant="outline" 
+            onClick={handleDownloadClick}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Downloading...
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Download CV
+              </>
+            )}
+          </Button>
+          <Button 
+            onClick={handleSendClick}
+            disabled={isSending}
+          >
+            {isSending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Submit CV
+              </>
+            )}
+          </Button>
         </CardFooter>
       </Card>
     </div>

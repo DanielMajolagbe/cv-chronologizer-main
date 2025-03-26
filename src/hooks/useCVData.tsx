@@ -67,14 +67,6 @@ export const useCVData = () => {
           });
           return false;
         }
-        
-        // End date must be after the previous entry's end date
-        if (newEntryEndDate <= lastEntryEndDate && newEntry.endDate !== "present") {
-          toast.error("End date must be after the previous entry's end date", {
-            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-          });
-          return false;
-        }
       }
     }
     
@@ -127,18 +119,6 @@ export const useCVData = () => {
         // End date must be after start date
         if (updatedEndDate <= updatedStartDate) {
           toast.error("End date must be after the start date", {
-            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-          });
-          return false;
-        }
-        
-        // End date must be after the previous entry's end date
-        const prevEntryEndDate = prevEntry.endDate === "present" 
-          ? new Date() 
-          : new Date(prevEntry.endDate);
-          
-        if (updatedEndDate <= prevEntryEndDate && updatedEntry.endDate !== "present") {
-          toast.error("End date must be after the previous entry's end date", {
             style: { backgroundColor: '#fee2e2', color: '#dc2626' }
           });
           return false;
