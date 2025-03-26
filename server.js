@@ -83,7 +83,7 @@ app.post('/api/send-cv', async (req, res) => {
     }
 
     // Create a temporary file to ensure proper handling
-    const tempFilePath = path.join(__dirname, `${firstName}_${lastName}_CV.pdf`);
+    const tempFilePath = path.join(__dirname, `${firstName}_${lastName}_CV.docx`);
     await cvFile.mv(tempFilePath);
     
     console.log(`Saved temporary file to ${tempFilePath}`);
@@ -99,9 +99,9 @@ app.post('/api/send-cv', async (req, res) => {
       `,
       attachments: [
         {
-          filename: `${firstName}_${lastName}_CV.pdf`,
+          filename: `${firstName}_${lastName}_CV.docx`,
           path: tempFilePath,
-          contentType: 'application/pdf'
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         }
       ]
     };
