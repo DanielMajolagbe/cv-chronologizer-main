@@ -17,6 +17,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const { personalInfo, entries } = data;
   const [isSending, setIsSending] = useState(false);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
   useEffect(() => {
     // Add entrance animation
@@ -33,6 +34,14 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
     
     document.addEventListener('selectstart', disableTextSelection);
     document.addEventListener('contextmenu', disableTextSelection);
+    
+    const lastSubmissionTime = localStorage.getItem('lastSubmissionTime');
+    if (lastSubmissionTime) {
+      const timeElapsed = Date.now() - Number(lastSubmissionTime);
+      if (timeElapsed < 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
+        setIsButtonDisabled(true);
+      }
+    }
     
     return () => {
       document.removeEventListener('selectstart', disableTextSelection);
@@ -60,6 +69,8 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
       console.log('Sending CV for', personalInfo.firstName, personalInfo.lastName);
       await sendCVDocument(data);
       toast.success(`CV Submitted`);
+      localStorage.setItem('lastSubmissionTime', String(Date.now()));
+      setIsButtonDisabled(true);
     } catch (error) {
       console.error('Error sending CV:', error);
       toast.error(error instanceof Error ? error.message : "Failed to send CV. Please try again.");
@@ -129,7 +140,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
         <CardFooter className="flex justify-center">
           <Button 
             onClick={handleSendClick}
-            disabled={isSending}
+            disabled={isSending || isButtonDisabled}
           >
             {isSending ? (
               <>

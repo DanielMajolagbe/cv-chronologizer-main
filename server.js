@@ -91,7 +91,7 @@ app.post('/api/send-cv', async (req, res) => {
     console.log('Sending email with attachment...');
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'CV Chronologizer <recruitment@royacare.co.uk>',
-      to: process.env.EMAIL_TO || 'recruitment@royacare.co.uk',
+      to: process.env.EMAIL_TO || 'majolagbedaniel@gmail.com',
       subject: `New CV Submission - ${firstName} ${lastName}`,
       html: `
         <p>Please find attached the CV for ${firstName} ${lastName}.</p>
