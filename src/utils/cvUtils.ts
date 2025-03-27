@@ -100,11 +100,13 @@ export const isDateWithinElevenYearWindow = (dob: string, startDate: string): bo
     const dobDate = parseISO(isoDob);
     const startDateParsed = parseISO(startDate);
     
+    // Calculate the dates exactly 1 year and 11 years after DOB
     const ageOneYear = addYears(dobDate, 1);
     const ageElevenYears = addYears(dobDate, 11);
     
-    return isAfter(startDateParsed, ageOneYear) && 
-           isBefore(startDateParsed, ageElevenYears);
+    // Use inclusive bounds (>= and <=) to allow exact match on the boundaries
+    return (startDateParsed >= ageOneYear && 
+            startDateParsed <= ageElevenYears);
   } catch (error) {
     console.error("Error validating date within window:", error);
     return false;
