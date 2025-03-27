@@ -30,7 +30,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3002',
   'https://royacare-cv-builder.vercel.app',
-  'https://cv-chronologizer.vercel.app'
+  'https://cv-chronologizer.vercel.app',
+  'https://naomicare-cv-builder.vercel.app'
 ];
 
 app.use(cors({
@@ -44,8 +45,9 @@ app.use(cors({
     }
     return callback(null, true);
   },
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200
 }));
 
@@ -91,11 +93,11 @@ app.post('/api/send-cv', async (req, res) => {
     console.log('Sending email with attachment...');
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'CV Chronologizer <recruitment@royacare.co.uk>',
-      to: process.env.EMAIL_TO || 'recruitment@royacare.co.uk',
+      to: process.env.EMAIL_TO || 'majolagbedaniel@gmail.com',
       subject: `New CV Submission - ${firstName} ${lastName}`,
       html: `
-        <p>Please find attached the CV for ${firstName} ${lastName}.</p>
-        <p>This CV was generated using the Royacare Agency CV Builder.</p>
+        <p style="font-family: Arial, sans-serif; font-size: 14px;">Please find attached the CV for <strong>${firstName} ${lastName}</strong>.</p>
+        <p style="font-family: Arial, sans-serif; font-size: 14px;">This CV was generated using the Naomicare Agency CV Builder.</p>
       `,
       attachments: [
         {

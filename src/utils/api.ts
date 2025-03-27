@@ -12,7 +12,11 @@ export const sendCV = async (file: File, firstName: string, lastName: string): P
   const response = await fetch(`${API_URL}/api/send-cv`, {
     method: 'POST',
     body: formData,
-    credentials: 'include'
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Accept': 'application/json'
+    }
   });
 
   if (!response.ok) {

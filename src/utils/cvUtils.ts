@@ -224,264 +224,321 @@ const convertHtmlToDocumentElements = (html: string): Paragraph[] => {
     children: [new TextRun({ text: '', size: 24 })]
   })];
   
-  // First handle common block elements and basic list structure
-  let processedHtml = html
-    // Process paragraphs, preserving them
-    .replace(/<p>/g, '<paragraph>')
-    .replace(/<\/p>/g, '</paragraph>')
-    // Process lists
-    .replace(/<ul>/g, '<list>')
-    .replace(/<\/ul>/g, '</list>')
-    .replace(/<li>/g, '<listitem>')
-    .replace(/<\/li>/g, '</listitem>')
-    // Handle linebreaks
-    .replace(/<br\s*\/?>/g, '<linebreak>')
-    // Process inline formatting
-    .replace(/<strong>|<b>/g, '<bold>')
-    .replace(/<\/strong>|<\/b>/g, '</bold>')
-    .replace(/<em>|<i>/g, '<italic>')
-    .replace(/<\/em>|<\/i>/g, '</italic>')
-    // Replace non-breaking spaces
-    .replace(/&nbsp;/g, ' ');
+  // Decode all HTML entities first
+  const decodeHtmlEntities = (text: string): string => {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  };
+  
+  try {
+    // First ensure we're working with valid HTML by doing complete entity decoding
+    let processedHtml = decodeHtmlEntities(html);
     
-  // Remove any other HTML tags
-  processedHtml = processedHtml.replace(/<(?!paragraph|\/paragraph|list|\/list|listitem|\/listitem|linebreak|bold|\/bold|italic|\/italic)[^>]*>/g, '');
-  
-  // Split into paragraphs
-  const paragraphs = processedHtml.split('<paragraph>').filter(Boolean);
-  
-  const docParagraphs: Paragraph[] = [];
-  
-  // Process each paragraph
-  for (let i = 0; i < paragraphs.length; i++) {
-    const para = paragraphs[i].replace('</paragraph>', '');
+    // Strip any HTML comments and DOCTYPE declarations
+    processedHtml = processedHtml
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<!DOCTYPE[^>]*>/i, '');
     
-    // Check if this is a list
-    if (para.includes('<list>')) {
-      // Process list items
-      const listItems = para
-        .replace('<list>', '')
-        .replace('</list>', '')
-        .split('<listitem>')
-        .filter(Boolean);
+    // Process common block elements
+    processedHtml = processedHtml
+      // Process paragraphs
+      .replace(/<p[^>]*>/g, '<paragraph>')
+      .replace(/<\/p>/g, '</paragraph>')
+      // Process lists - improve list handling
+      .replace(/<ul[^>]*>/g, '')
+      .replace(/<\/ul>/g, '')
+      .replace(/<ol[^>]*>/g, '')
+      .replace(/<\/ol>/g, '')
+      .replace(/<li[^>]*>/g, '')
+      .replace(/<\/li>/g, '')
+      // Handle linebreaks
+      .replace(/<br\s*\/?>/g, '<linebreak>')
+      // Process inline formatting
+      .replace(/<strong[^>]*>|<b[^>]*>/g, '<bold>')
+      .replace(/<\/strong>|<\/b>/g, '</bold>')
+      .replace(/<em[^>]*>|<i[^>]*>/g, '<italic>')
+      .replace(/<\/em>|<\/i>/g, '</italic>')
+      // Handle divs as paragraphs
+      .replace(/<div[^>]*>/g, '<paragraph>')
+      .replace(/<\/div>/g, '</paragraph>');
+    
+    // Make sure all HTML entities are properly decoded
+    processedHtml = processedHtml
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ');
+    
+    // Remove any other HTML tags but preserve their content
+    processedHtml = processedHtml.replace(/<(?!paragraph|\/paragraph|list|\/list|listitem|\/listitem|linebreak|bold|\/bold|italic|\/italic)[^>]*>/g, '');
+    
+    // Ensure paragraphs are properly wrapped
+    if (!processedHtml.includes('<paragraph>')) {
+      processedHtml = `<paragraph>${processedHtml}</paragraph>`;
+    }
+    
+    // Split into paragraphs
+    const paragraphs = processedHtml.split('<paragraph>').filter(Boolean)
+      .map(p => p.replace('</paragraph>', '').trim())
+      .filter(p => p.length > 0);
+    
+    const docParagraphs: Paragraph[] = [];
+    
+    // Process each paragraph
+    for (let i = 0; i < paragraphs.length; i++) {
+      const para = paragraphs[i].replace('</paragraph>', '');
       
-      // Create paragraph for each list item
-      listItems.forEach(item => {
-        const listItemText = item.replace('</listitem>', '');
+      // Check if this is a list
+      if (para.includes('<list>')) {
+        // Process list items
+        const listContent = para.substring(
+          para.indexOf('<list>') + 6, 
+          para.lastIndexOf('</list>')
+        );
         
-        const segments: TextRun[] = [];
-        let remainingText = listItemText;
+        // Split list items properly, ensuring we don't have HTML entities
+        const listItems = listContent
+          .split('<listitem>')
+          .filter(Boolean)
+          .map(item => item.replace('</listitem>', '').trim());
         
-        // Process bold and italic text inside list items
-        while (remainingText.includes('<bold>') || remainingText.includes('<italic>')) {
-          const boldIndex = remainingText.indexOf('<bold>');
-          const italicIndex = remainingText.indexOf('<italic>');
+        // Create paragraph for each list item
+        listItems.forEach(item => {
+          if (!item) return; // Skip empty items
           
-          if ((boldIndex < italicIndex || italicIndex === -1) && boldIndex !== -1) {
-            // Process text before bold
-            if (boldIndex > 0) {
-              segments.push(new TextRun({
-                text: remainingText.substring(0, boldIndex),
-                size: 24
-              }));
-            }
-            
-            // Extract bold text
-            const boldText = remainingText.substring(boldIndex + 6, remainingText.indexOf('</bold>'));
-            segments.push(new TextRun({
-              text: boldText,
-              bold: true,
-              size: 24
-            }));
-            
-            // Continue with rest of text
-            remainingText = remainingText.substring(remainingText.indexOf('</bold>') + 7);
-          } else if (italicIndex !== -1) {
-            // Process text before italic
-            if (italicIndex > 0) {
-              segments.push(new TextRun({
-                text: remainingText.substring(0, italicIndex),
-                size: 24
-              }));
-            }
-            
-            // Extract italic text
-            const italicText = remainingText.substring(italicIndex + 8, remainingText.indexOf('</italic>'));
-            segments.push(new TextRun({
-              text: italicText,
-              italics: true,
-              size: 24
-            }));
-            
-            // Continue with rest of text
-            remainingText = remainingText.substring(remainingText.indexOf('</italic>') + 9);
-          }
-        }
-        
-        // Add any remaining text
-        if (remainingText) {
-          segments.push(new TextRun({
-            text: remainingText,
-            size: 24
-          }));
-        }
-        
-        // Add bullet paragraph
-        docParagraphs.push(new Paragraph({
-          spacing: { before: 0, after: 120 },
-          indent: { left: 720 },
-          bullet: { level: 0 },
-          children: segments.length ? segments : [new TextRun({ text: "• ", size: 24 })]
-        }));
-      });
-    } else {
-      // Handle regular paragraph
-      const segments: TextRun[] = [];
-      let remainingText = para;
-      
-      // Process line breaks
-      if (remainingText.includes('<linebreak>')) {
-        const paraLines = remainingText.split('<linebreak>');
-        
-        paraLines.forEach((line, lineIndex) => {
-          if (lineIndex > 0) {
-            docParagraphs.push(new Paragraph({
-              spacing: { before: 0, after: 120 },
-              indent: { left: 720 },
-              children: []
-            }));
-          }
+          const segments: TextRun[] = [];
+          let remainingText = item;
           
-          const lineSegments: TextRun[] = [];
-          let lineText = line;
-          
-          // Process bold and italic in each line
-          while (lineText.includes('<bold>') || lineText.includes('<italic>')) {
-            const boldIndex = lineText.indexOf('<bold>');
-            const italicIndex = lineText.indexOf('<italic>');
+          // Process bold and italic text inside list items
+          while (remainingText.includes('<bold>') || remainingText.includes('<italic>')) {
+            const boldIndex = remainingText.indexOf('<bold>');
+            const italicIndex = remainingText.indexOf('<italic>');
             
             if ((boldIndex < italicIndex || italicIndex === -1) && boldIndex !== -1) {
               // Process text before bold
               if (boldIndex > 0) {
-                lineSegments.push(new TextRun({
-                  text: lineText.substring(0, boldIndex),
+                segments.push(new TextRun({
+                  text: remainingText.substring(0, boldIndex),
                   size: 24
                 }));
               }
               
               // Extract bold text
-              const boldText = lineText.substring(boldIndex + 6, lineText.indexOf('</bold>'));
-              lineSegments.push(new TextRun({
+              const boldText = remainingText.substring(boldIndex + 6, remainingText.indexOf('</bold>'));
+              segments.push(new TextRun({
                 text: boldText,
                 bold: true,
                 size: 24
               }));
               
               // Continue with rest of text
-              lineText = lineText.substring(lineText.indexOf('</bold>') + 7);
+              remainingText = remainingText.substring(remainingText.indexOf('</bold>') + 7);
             } else if (italicIndex !== -1) {
               // Process text before italic
               if (italicIndex > 0) {
-                lineSegments.push(new TextRun({
-                  text: lineText.substring(0, italicIndex),
+                segments.push(new TextRun({
+                  text: remainingText.substring(0, italicIndex),
                   size: 24
                 }));
               }
               
               // Extract italic text
-              const italicText = lineText.substring(italicIndex + 8, lineText.indexOf('</italic>'));
-              lineSegments.push(new TextRun({
+              const italicText = remainingText.substring(italicIndex + 8, remainingText.indexOf('</italic>'));
+              segments.push(new TextRun({
                 text: italicText,
                 italics: true,
                 size: 24
               }));
               
               // Continue with rest of text
-              lineText = lineText.substring(lineText.indexOf('</italic>') + 9);
+              remainingText = remainingText.substring(remainingText.indexOf('</italic>') + 9);
             }
           }
           
           // Add any remaining text
-          if (lineText) {
-            lineSegments.push(new TextRun({
-              text: lineText,
+          if (remainingText) {
+            segments.push(new TextRun({
+              text: remainingText,
               size: 24
             }));
           }
           
-          if (lineSegments.length) {
-            docParagraphs.push(new Paragraph({
-              spacing: { before: 0, after: 120 },
-              indent: { left: 720 },
-              children: lineSegments
-            }));
-          }
+          // Add bullet paragraph with proper bullet formatting
+          docParagraphs.push(new Paragraph({
+            spacing: { before: 0, after: 120 },
+            indent: { left: 720 },
+            bullet: { level: 0 },
+            children: segments.length ? segments : [new TextRun({ text: "• ", size: 24 })]
+          }));
         });
       } else {
-        // Process bold and italic
-        while (remainingText.includes('<bold>') || remainingText.includes('<italic>')) {
-          const boldIndex = remainingText.indexOf('<bold>');
-          const italicIndex = remainingText.indexOf('<italic>');
-          
-          if ((boldIndex < italicIndex || italicIndex === -1) && boldIndex !== -1) {
-            // Process text before bold
-            if (boldIndex > 0) {
-              segments.push(new TextRun({
-                text: remainingText.substring(0, boldIndex),
-                size: 24
-              }));
-            }
-            
-            // Extract bold text
-            const boldText = remainingText.substring(boldIndex + 6, remainingText.indexOf('</bold>'));
-            segments.push(new TextRun({
-              text: boldText,
-              bold: true,
-              size: 24
-            }));
-            
-            // Continue with rest of text
-            remainingText = remainingText.substring(remainingText.indexOf('</bold>') + 7);
-          } else if (italicIndex !== -1) {
-            // Process text before italic
-            if (italicIndex > 0) {
-              segments.push(new TextRun({
-                text: remainingText.substring(0, italicIndex),
-                size: 24
-              }));
-            }
-            
-            // Extract italic text
-            const italicText = remainingText.substring(italicIndex + 8, remainingText.indexOf('</italic>'));
-            segments.push(new TextRun({
-              text: italicText,
-              italics: true,
-              size: 24
-            }));
-            
-            // Continue with rest of text
-            remainingText = remainingText.substring(remainingText.indexOf('</italic>') + 9);
-          }
-        }
+        // Handle regular paragraph
+        const segments: TextRun[] = [];
+        let remainingText = para;
         
-        // Add any remaining text
-        if (remainingText) {
-          segments.push(new TextRun({
-            text: remainingText,
-            size: 24
+        // Process line breaks
+        if (remainingText.includes('<linebreak>')) {
+          const paraLines = remainingText.split('<linebreak>');
+          
+          paraLines.forEach((line, lineIndex) => {
+            if (lineIndex > 0) {
+              docParagraphs.push(new Paragraph({
+                spacing: { before: 0, after: 120 },
+                indent: { left: 720 },
+                children: []
+              }));
+            }
+            
+            const lineSegments: TextRun[] = [];
+            let lineText = line;
+            
+            // Process bold and italic in each line
+            while (lineText.includes('<bold>') || lineText.includes('<italic>')) {
+              const boldIndex = lineText.indexOf('<bold>');
+              const italicIndex = lineText.indexOf('<italic>');
+              
+              if ((boldIndex < italicIndex || italicIndex === -1) && boldIndex !== -1) {
+                // Process text before bold
+                if (boldIndex > 0) {
+                  lineSegments.push(new TextRun({
+                    text: lineText.substring(0, boldIndex),
+                    size: 24
+                  }));
+                }
+                
+                // Extract bold text
+                const boldText = lineText.substring(boldIndex + 6, lineText.indexOf('</bold>'));
+                lineSegments.push(new TextRun({
+                  text: boldText,
+                  bold: true,
+                  size: 24
+                }));
+                
+                // Continue with rest of text
+                lineText = lineText.substring(lineText.indexOf('</bold>') + 7);
+              } else if (italicIndex !== -1) {
+                // Process text before italic
+                if (italicIndex > 0) {
+                  lineSegments.push(new TextRun({
+                    text: lineText.substring(0, italicIndex),
+                    size: 24
+                  }));
+                }
+                
+                // Extract italic text
+                const italicText = lineText.substring(italicIndex + 8, lineText.indexOf('</italic>'));
+                lineSegments.push(new TextRun({
+                  text: italicText,
+                  italics: true,
+                  size: 24
+                }));
+                
+                // Continue with rest of text
+                lineText = lineText.substring(lineText.indexOf('</italic>') + 9);
+              }
+            }
+            
+            // Add any remaining text
+            if (lineText) {
+              lineSegments.push(new TextRun({
+                text: lineText,
+                size: 24
+              }));
+            }
+            
+            if (lineSegments.length) {
+              docParagraphs.push(new Paragraph({
+                spacing: { before: 0, after: 120 },
+                indent: { left: 720 },
+                children: lineSegments
+              }));
+            }
+          });
+        } else {
+          // Process bold and italic
+          while (remainingText.includes('<bold>') || remainingText.includes('<italic>')) {
+            const boldIndex = remainingText.indexOf('<bold>');
+            const italicIndex = remainingText.indexOf('<italic>');
+            
+            if ((boldIndex < italicIndex || italicIndex === -1) && boldIndex !== -1) {
+              // Process text before bold
+              if (boldIndex > 0) {
+                segments.push(new TextRun({
+                  text: remainingText.substring(0, boldIndex),
+                  size: 24
+                }));
+              }
+              
+              // Extract bold text
+              const boldText = remainingText.substring(boldIndex + 6, remainingText.indexOf('</bold>'));
+              segments.push(new TextRun({
+                text: boldText,
+                bold: true,
+                size: 24
+              }));
+              
+              // Continue with rest of text
+              remainingText = remainingText.substring(remainingText.indexOf('</bold>') + 7);
+            } else if (italicIndex !== -1) {
+              // Process text before italic
+              if (italicIndex > 0) {
+                segments.push(new TextRun({
+                  text: remainingText.substring(0, italicIndex),
+                  size: 24
+                }));
+              }
+              
+              // Extract italic text
+              const italicText = remainingText.substring(italicIndex + 8, remainingText.indexOf('</italic>'));
+              segments.push(new TextRun({
+                text: italicText,
+                italics: true,
+                size: 24
+              }));
+              
+              // Continue with rest of text
+              remainingText = remainingText.substring(remainingText.indexOf('</italic>') + 9);
+            }
+          }
+          
+          // Add any remaining text
+          if (remainingText) {
+            segments.push(new TextRun({
+              text: remainingText,
+              size: 24
+            }));
+          }
+          
+          docParagraphs.push(new Paragraph({
+            spacing: { before: 0, after: 120 },
+            indent: { left: 720 },
+            children: segments
           }));
         }
-        
-        docParagraphs.push(new Paragraph({
-          spacing: { before: 0, after: 120 },
-          indent: { left: 720 },
-          children: segments
-        }));
       }
     }
+    
+    // Add a final paragraph if no paragraphs were added
+    if (docParagraphs.length === 0) {
+      docParagraphs.push(new Paragraph({
+        spacing: { before: 0, after: 120 },
+        indent: { left: 720 },
+        children: [new TextRun({ text: html.replace(/<[^>]*>/g, ''), size: 24 })]
+      }));
+    }
+    
+    return docParagraphs;
+  } catch (error) {
+    console.error('Error converting HTML to document elements:', error);
+    return [new Paragraph({
+      spacing: { before: 0, after: 120 },
+      indent: { left: 720 },
+      children: [new TextRun({ text: html.replace(/<[^>]*>/g, ''), size: 24 })]
+    })];
   }
-  
-  return docParagraphs;
 };
 
 export const generateCVDocument = async (data: CVData, shouldDownload: boolean = false): Promise<Blob> => {
@@ -653,7 +710,7 @@ export const generateCVDocument = async (data: CVData, shouldDownload: boolean =
                       size: 24,
                     }),
                   ],
-                    }),
+                }),
                 
                 new Paragraph({
                   spacing: { before: 0, after: 120 },
@@ -821,8 +878,30 @@ export const generatePDFDocument = async (data: CVData): Promise<Blob> => {
     if (entry.description) {
       pdf.setFont('helvetica', 'normal');
       
+      // Convert HTML to plain text
+      const plainDescription = entry.description
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<\/ul>/gi, '')
+        .replace(/<\/ol>/gi, '')
+        .replace(/<ul[^>]*>/gi, '')
+        .replace(/<ol[^>]*>/gi, '')
+        .replace(/<li[^>]*>/gi, '• ')
+        .replace(/<\/li>/gi, '\n')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/<listitem>/g, '• ')
+        .replace(/<\/listitem>/g, '\n')
+        .replace(/<list>/g, '')
+        .replace(/<\/list>/g, '');
+      
       // Split description into multiple lines if it's too long
-      const textLines = pdf.splitTextToSize(entry.description, pdf.internal.pageSize.width - 50);
+      const textLines = pdf.splitTextToSize(plainDescription, pdf.internal.pageSize.width - 50);
       
       // Check if we need a new page for the description
       if (yPosition + (textLines.length * lineHeight) > pdf.internal.pageSize.height - 20) {

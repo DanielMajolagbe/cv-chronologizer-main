@@ -39,11 +39,14 @@ export const RichTextEditor = ({
         HTMLAttributes: {
           class: 'list-disc pl-6',
         },
+        keepMarks: true,
+        keepAttributes: true,
       }),
       ListItem.configure({
         HTMLAttributes: {
           class: 'my-2',
-        }
+        },
+        keepMarks: true,
       }),
       Paragraph.configure({
         HTMLAttributes: {
@@ -53,7 +56,16 @@ export const RichTextEditor = ({
     ],
     content: value,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const html = editor.getHTML();
+      // Clean HTML output by replacing any encoded entities in list elements
+      const cleanedHtml = html
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, ' ');
+      onChange(cleanedHtml);
     },
     editorProps: {
       attributes: {
