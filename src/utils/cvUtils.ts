@@ -141,33 +141,31 @@ export const isEntryInChronologicalOrder = (
     }
   }
   
+  // Add the new entry to check
+  sortedEntries.push(newEntry);
+  
   // Sort entries by start date
   sortedEntries.sort((a, b) => 
     new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
   );
-  
-  const newEntryStart = new Date(newEntry.startDate);
-  const newEntryEnd = newEntry.endDate === "present" 
-    ? new Date() 
-    : new Date(newEntry.endDate);
-  
-  // Find where this entry would fit in the timeline
-  let insertIndex = sortedEntries.findIndex(entry => 
-    new Date(entry.startDate).getTime() > newEntryStart.getTime()
-  );
-  
-  if (insertIndex === -1) {
-    insertIndex = sortedEntries.length;
-  }
-  
-  // Only check if this entry starts after any previous entry's end date
-  if (insertIndex > 0) {
-    const prevEntry = sortedEntries[insertIndex - 1];
-    const prevEntryEnd = prevEntry.endDate === "present" 
-      ? new Date() 
-      : new Date(prevEntry.endDate);
+
+  // Check for overlaps or gaps between entries
+  for (let i = 1; i < sortedEntries.length; i++) {
+    const previousEntry = sortedEntries[i - 1];
+    const currentEntry = sortedEntries[i];
     
-    if (newEntryStart > prevEntryEnd) {
+    const previousEndDate = previousEntry.endDate === "present" 
+      ? new Date() 
+      : new Date(previousEntry.endDate);
+    
+    const currentStartDate = new Date(currentEntry.startDate);
+
+    // Convert dates to YYYY-MM format for comparison
+    const prevEndYearMonth = previousEndDate.toISOString().slice(0, 7);
+    const currStartYearMonth = currentStartDate.toISOString().slice(0, 7);
+
+    // Check if there's a gap or if dates don't align
+    if (prevEndYearMonth !== currStartYearMonth) {
       return false;
     }
   }
