@@ -255,12 +255,10 @@ const TimelineEntry = ({
           
           <CardContent className="pb-2">
             <div 
-              className="text-sm prose prose-sm max-w-none prose-ul:mt-1 prose-ul:mb-1 prose-li:mt-0 prose-li:mb-0 prose-li:marker:text-black"
-              dangerouslySetInnerHTML={{ __html: entry.description
-                .replace(/&lt;listitem&gt;/g, "<li>")
-                .replace(/&lt;\/listitem&gt;/g, "</li>")
-                .replace(/&lt;list&gt;/g, "<ul>")
-                .replace(/&lt;\/list&gt;/g, "</ul>")
+              className="text-sm prose prose-sm max-w-none overflow-hidden"
+              dangerouslySetInnerHTML={{ __html: entry.description }}
+              style={{
+                lineHeight: '1.5',
               }}
             />
           </CardContent>
