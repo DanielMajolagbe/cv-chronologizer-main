@@ -44,22 +44,22 @@ export const useCVData = () => {
       // Check chronological order using the same function used for editing entries
       if (!isEntryInChronologicalOrder(entries, newEntry as TimelineEntry)) {
         toast.error("Entry dates must follow chronological order", {
-          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-        });
-        return false;
-      }
-      
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
+          return false;
+        }
+        
       // Ensure end date is after start date
       const newEntryStartDate = new Date(newEntry.startDate);
-      const newEntryEndDate = newEntry.endDate === "present" 
-        ? new Date() 
-        : new Date(newEntry.endDate);
-      
-      if (newEntryEndDate <= newEntryStartDate) {
-        toast.error("End date must be after the start date", {
-          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-        });
-        return false;
+        const newEntryEndDate = newEntry.endDate === "present" 
+          ? new Date() 
+          : new Date(newEntry.endDate);
+        
+        if (newEntryEndDate <= newEntryStartDate) {
+          toast.error("End date must be after the start date", {
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
+          return false;
       }
     }
     
@@ -96,22 +96,22 @@ export const useCVData = () => {
       // Check chronological order using the same function used for new entries
       if (!isEntryInChronologicalOrder(entries, updatedEntry, id)) {
         toast.error("Entry dates must follow chronological order", {
-          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-        });
-        return false;
-      }
-      
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
+          return false;
+        }
+        
       // Ensure end date is after start date
       const updatedStartDate = new Date(updatedEntry.startDate);
-      const updatedEndDate = updatedEntry.endDate === "present" 
-        ? new Date() 
-        : new Date(updatedEntry.endDate);
-      
-      if (updatedEndDate <= updatedStartDate) {
-        toast.error("End date must be after the start date", {
-          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-        });
-        return false;
+        const updatedEndDate = updatedEntry.endDate === "present" 
+          ? new Date() 
+          : new Date(updatedEntry.endDate);
+        
+        if (updatedEndDate <= updatedStartDate) {
+          toast.error("End date must be after the start date", {
+            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+          });
+          return false;
       }
     }
     

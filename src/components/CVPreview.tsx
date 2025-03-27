@@ -131,7 +131,10 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
                       {formatDateForDisplay(entry.startDate)} - {formatDateForDisplay(entry.endDate)}
                     </div>
                     <div className="text-sm italic mb-2">{entry.title}</div>
-                    <div className="text-sm pl-4">{entry.description}</div>
+                    <div 
+                      className="text-sm pl-4 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: entry.description }}
+                    />
                   </div>
                 ))}
             </div>

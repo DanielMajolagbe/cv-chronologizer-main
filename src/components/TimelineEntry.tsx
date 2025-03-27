@@ -11,6 +11,7 @@ import { Pencil, Trash2, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DatePicker, MonthYearPicker } from "@/components/ui/month-year-picker";
 import { format, parseISO } from "date-fns";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 interface TimelineEntryProps {
   entry: TimelineEntryType;
@@ -206,12 +207,12 @@ const TimelineEntry = ({
             
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
+              <RichTextEditor
                 value={editedEntry.description}
-                onChange={(e) => handleChange("description", e.target.value)}
-                placeholder="Describe your role, responsibilities, achievements, or studies..."
-                className="min-h-[100px]"
+                onChange={(value) => handleChange("description", value)}
+                placeholder=""
+                height="250px"
+                className="min-h-[200px]"
               />
             </div>
           </CardContent>
@@ -253,7 +254,10 @@ const TimelineEntry = ({
           </CardHeader>
           
           <CardContent className="pb-2">
-            <p className="text-sm text-muted-foreground">{entry.description}</p>
+            <div 
+              className="text-sm prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: entry.description }}
+            />
           </CardContent>
           
           <CardFooter className="flex justify-end space-x-2 pt-0">

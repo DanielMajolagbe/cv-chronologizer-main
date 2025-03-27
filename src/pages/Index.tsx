@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DatePicker, MonthYearPicker } from "@/components/ui/month-year-picker";
 import { format, parseISO } from "date-fns";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 const emptyEntry: Omit<TimelineEntryType, "id"> = {
   type: "education",
@@ -471,13 +472,13 @@ const Index = () => {
                   Description
                   {validationErrors.description && <span className="text-red-500 ml-1">*</span>}
                 </Label>
-                <Textarea
-                  id="new-description"
+                <RichTextEditor
                   value={newEntry.description}
-                  onChange={(e) => handleNewEntryChange("description", e.target.value)}
-                  placeholder="Describe your role, responsibilities, achievements, or studies..."
+                  onChange={(value) => handleNewEntryChange("description", value)}
+                  placeholder=""
+                  height="250px"
                   className={cn(
-                    "min-h-[100px] transition-all focus:ring-2 focus:ring-primary/20",
+                    "min-h-[200px]",
                     validationErrors.description && "border-red-500 focus:ring-red-500"
                   )}
                 />
