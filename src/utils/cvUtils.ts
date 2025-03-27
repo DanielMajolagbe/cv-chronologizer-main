@@ -154,18 +154,16 @@ export const isEntryInChronologicalOrder = (
     const previousEntry = sortedEntries[i - 1];
     const currentEntry = sortedEntries[i];
     
+    const previousStartDate = new Date(previousEntry.startDate);
     const previousEndDate = previousEntry.endDate === "present" 
       ? new Date() 
       : new Date(previousEntry.endDate);
     
     const currentStartDate = new Date(currentEntry.startDate);
-
-    // Convert dates to YYYY-MM format for comparison
-    const prevEndYearMonth = previousEndDate.toISOString().slice(0, 7);
-    const currStartYearMonth = currentStartDate.toISOString().slice(0, 7);
-
-    // Check if there's a gap or if dates don't align
-    if (prevEndYearMonth !== currStartYearMonth) {
+    
+    // Check if the current entry's start date is within the previous entry's date range
+    // or if it's after the previous entry's end date
+    if (currentStartDate < previousStartDate || currentStartDate > previousEndDate) {
       return false;
     }
   }
@@ -192,10 +190,9 @@ export const identifyGaps = (entries: TimelineEntry[]): { start: string; end: st
     const prevEnd = new Date(prevEndDate);
     const currStart = new Date(currentStartDate);
     
-    if (
-      prevEnd.getMonth() !== currStart.getMonth() || 
-      prevEnd.getFullYear() !== currStart.getFullYear()
-    ) {
+    // Check if the current entry starts after the previous entry ends
+    // Only then we have a gap
+    if (currStart > prevEnd) {
       gaps.push({
         start: prevEndDate,
         end: currentStartDate

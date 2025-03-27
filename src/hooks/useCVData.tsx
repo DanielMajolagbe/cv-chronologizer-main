@@ -34,39 +34,25 @@ export const useCVData = () => {
         return false;
       }
     } else {
-      // For subsequent entries, validate against the previous entry
-      const sortedEntries = [...entries].sort((a, b) => 
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      );
-      const lastEntry = sortedEntries[sortedEntries.length - 1];
+      // Check chronological order using the same function used for editing entries
+      if (!isEntryInChronologicalOrder(entries, newEntry as TimelineEntry)) {
+        toast.error("Entry dates must follow chronological order", {
+          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+        });
+        return false;
+      }
       
-      if (lastEntry) {
-        // Check that start date is valid
-        const lastEntryEndDate = lastEntry.endDate === "present" 
-          ? new Date() 
-          : new Date(lastEntry.endDate);
-        const newEntryStartDate = new Date(newEntry.startDate);
-        
-        // New entry should start within or after the previous entry
-        if (newEntryStartDate < new Date(lastEntry.startDate)) {
-          toast.error("New entry must start on or after the start date of the previous entry", {
-            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-          });
-          return false;
-        }
-        
-        // Check that end date is valid
-        const newEntryEndDate = newEntry.endDate === "present" 
-          ? new Date() 
-          : new Date(newEntry.endDate);
-        
-        // End date must be after start date
-        if (newEntryEndDate <= newEntryStartDate) {
-          toast.error("End date must be after the start date", {
-            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-          });
-          return false;
-        }
+      // Ensure end date is after start date
+      const newEntryStartDate = new Date(newEntry.startDate);
+      const newEntryEndDate = newEntry.endDate === "present" 
+        ? new Date() 
+        : new Date(newEntry.endDate);
+      
+      if (newEntryEndDate <= newEntryStartDate) {
+        toast.error("End date must be after the start date", {
+          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+        });
+        return false;
       }
     }
     
@@ -93,51 +79,25 @@ export const useCVData = () => {
         return false;
       }
     } else {
-      // For non-first entries, check if it follows the previous entry
-      const sortedEntries = [...entries].sort((a, b) => 
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      );
-      const entryIndex = sortedEntries.findIndex(e => e.id === id);
-      
-      if (entryIndex > 0) {
-        const prevEntry = sortedEntries[entryIndex - 1];
-        const updatedStartDate = new Date(updatedEntry.startDate);
-        
-        // Updated entry should start within or after the previous entry
-        if (updatedStartDate < new Date(prevEntry.startDate)) {
-          toast.error("Entry must start on or after the start date of the previous entry", {
-            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-          });
-          return false;
-        }
-        
-        // Check that end date is valid
-        const updatedEndDate = updatedEntry.endDate === "present" 
-          ? new Date() 
-          : new Date(updatedEntry.endDate);
-        
-        // End date must be after start date
-        if (updatedEndDate <= updatedStartDate) {
-          toast.error("End date must be after the start date", {
-            style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-          });
-          return false;
-        }
+      // Check chronological order using the same function used for new entries
+      if (!isEntryInChronologicalOrder(entries, updatedEntry, id)) {
+        toast.error("Entry dates must follow chronological order", {
+          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+        });
+        return false;
       }
       
-      // Also check if the next entry starts after or within this one
-      if (entryIndex < sortedEntries.length - 1) {
-        const nextEntry = sortedEntries[entryIndex + 1];
-        const updatedEndDate = updatedEntry.endDate === "present" 
-          ? new Date() 
-          : new Date(updatedEntry.endDate);
-        const nextStartDate = new Date(nextEntry.startDate);
-        
-        // Next entry should start after this entry's start date
-        if (nextStartDate < new Date(updatedEntry.startDate)) {
-          toast.error("Next entry must start after this entry's start date");
-          return false;
-        }
+      // Ensure end date is after start date
+      const updatedStartDate = new Date(updatedEntry.startDate);
+      const updatedEndDate = updatedEntry.endDate === "present" 
+        ? new Date() 
+        : new Date(updatedEntry.endDate);
+      
+      if (updatedEndDate <= updatedStartDate) {
+        toast.error("End date must be after the start date", {
+          style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+        });
+        return false;
       }
     }
     
