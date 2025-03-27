@@ -101,7 +101,7 @@ app.post('/api/send-cv', async (req, res) => {
       subject: `New CV Submission - ${firstName} ${lastName}`,
       html: `
         <p style="font-family: Arial, sans-serif; font-size: 14px;">Please find attached the CV for <strong>${firstName} ${lastName}</strong>.</p>
-        <p style="font-family: Arial, sans-serif; font-size: 14px;">This CV was generated using the Naomicare Agency CV Builder.</p>
+        <p style="font-family: Arial, sans-serif; font-size: 14px;">This CV was generated using the Royacare Agency CV Builder.</p>
       `,
       attachments: [
         {

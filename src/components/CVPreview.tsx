@@ -38,7 +38,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
     const lastSubmissionTime = localStorage.getItem('lastSubmissionTime');
     if (lastSubmissionTime) {
       const timeElapsed = Date.now() - Number(lastSubmissionTime);
-      if (timeElapsed < 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
+      if (timeElapsed < 0 * 60 * 60 * 1000) { // 24 hours in milliseconds
         setIsButtonDisabled(true);
       }
     }
