@@ -88,7 +88,6 @@ app.post('/api/send-cv', async (req, res) => {
       return res.status(400).json({ error: 'CV file is empty' });
     }
 
-    // Create a temporary file to ensure proper handling
     const tempFilePath = path.join(__dirname, `${firstName}_${lastName}_CV.docx`);
     await cvFile.mv(tempFilePath);
     
