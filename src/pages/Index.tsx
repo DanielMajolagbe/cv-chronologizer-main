@@ -88,6 +88,7 @@ const Index = () => {
         organization: "Gap Period",
         country: "",
         description: ""
+        
       }));
     } else {
       setNewEntry(prev => ({ 
