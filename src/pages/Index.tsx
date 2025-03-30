@@ -87,7 +87,7 @@ const Index = () => {
         title: "Gap/Break",
         organization: "Gap Period",
         country: "",
-        description: "Gap period in timeline"
+        description: ""
       }));
     } else {
       setNewEntry(prev => ({ 
