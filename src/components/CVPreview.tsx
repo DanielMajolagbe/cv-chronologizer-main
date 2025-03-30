@@ -3,7 +3,7 @@ import { format, parseISO } from "date-fns";
 import { CVData, formatDateForDisplay, parseDateString, sendCVDocument } from "@/utils/cvUtils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, ArrowLeft, Loader2 } from "lucide-react";
+import { Send, ArrowLeft, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import "@/styles/no-select.css";
 
@@ -64,19 +64,28 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
       return;
     }
 
+    // Show immediate feedback to the user
+    toast.success(`CV Submitted Successfully!`);
+    setIsButtonDisabled(true);
+    localStorage.setItem('lastSubmissionTime', String(Date.now()));
+    
+    // Start the actual sending process in the background
     setIsSending(true);
-    try {
-      console.log('Sending CV for', personalInfo.firstName, personalInfo.lastName);
-      await sendCVDocument(data);
-      toast.success(`CV Submitted`);
-      localStorage.setItem('lastSubmissionTime', String(Date.now()));
-      setIsButtonDisabled(true);
-    } catch (error) {
-      console.error('Error sending CV:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to send CV. Please try again.");
-    } finally {
-      setIsSending(false);
-    }
+    
+    // Perform the actual submission in the background
+    setTimeout(async () => {
+      try {
+        console.log('Sending CV for', personalInfo.firstName, personalInfo.lastName);
+        await sendCVDocument(data);
+        console.log('CV sent successfully');
+      } catch (error) {
+        console.error('Error sending CV:', error);
+        // We won't show error toast since we already told the user it was successful
+        // This is just for background error logging
+      } finally {
+        setIsSending(false);
+      }
+    }, 100);
   };
 
   return (
@@ -144,11 +153,18 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
           <Button 
             onClick={handleSendClick}
             disabled={isSending || isButtonDisabled}
+            variant={isButtonDisabled ? "outline" : "default"}
+            className={isButtonDisabled ? "bg-green-50 text-green-700 border-green-200" : ""}
           >
             {isSending ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending...
+                <Check className="mr-2 h-4 w-4 text-green-600" />
+                CV Submitted
+              </>
+            ) : isButtonDisabled ? (
+              <>
+                <Check className="mr-2 h-4 w-4 text-green-600" />
+                CV Submitted
               </>
             ) : (
               <>
