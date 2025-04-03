@@ -603,7 +603,7 @@ const Index = () => {
                 <>
                   <div className="space-y-2 mt-4" ref={el => formRefs.current.organization = el}>
                     <Label htmlFor="new-organization" className="flex items-center">
-                      {newEntry.type === 'education' ? 'Organization (Optional)' : 'Company Name'}
+                      {newEntry.type === 'education' ? 'School name' : 'Company Name'}
                       {validationErrors.organization && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     <Input
