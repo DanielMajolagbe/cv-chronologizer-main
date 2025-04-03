@@ -33,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import "@/styles/animations.css";
+// import "@/styles/animations.css";
 
 // Helper function to check for effectively empty rich text content
 const isEmptyRichText = (value: string): boolean => {
@@ -599,39 +599,39 @@ const Index = () => {
                 )}
               </div>
               
-              {newEntry.type !== "gap" && (
-                <>
-                  <div className="space-y-2 mt-4" ref={el => formRefs.current.organization = el}>
-                    <Label htmlFor="new-organization" className="flex items-center">
-                      {newEntry.type === 'education' ? 'School name' : 'Company Name'}
-                      {validationErrors.organization && <span className="text-red-500 ml-1">*</span>}
-                    </Label>
-                    <Input
-                      id="new-organization"
-                      value={newEntry.organization}
-                      onChange={(e) => handleNewEntryChange("organization", e.target.value)}
-                      placeholder={newEntry.type === "education" ? "e.g., Department/Faculty" : "Enter company/employer name"}
-                      className={cn(validationErrors.organization && "border-red-500 focus:ring-red-500")}
-                    />
-                  </div>
+              {newEntry.type === "work" && ( // Only show organization for work experience
+                <div className="space-y-2 mt-4" ref={el => formRefs.current.organization = el}>
+                  <Label htmlFor="new-organization" className="flex items-center">
+                    Company Name 
+                    {validationErrors.organization && <span className="text-red-500 ml-1">*</span>}
+                  </Label>
+                  <Input
+                    id="new-organization"
+                    value={newEntry.organization}
+                    onChange={(e) => handleNewEntryChange("organization", e.target.value)}
+                    placeholder="Enter company/employer name"
+                    className={cn(validationErrors.organization && "border-red-500 focus:ring-red-500")}
+                  />
+                </div>
+              )}
 
-                  <div className="space-y-2 mt-4" ref={el => formRefs.current.country = el}>
-                    <Label htmlFor="new-country" className="flex items-center">
-                      Country
-                      {validationErrors.country && <span className="text-red-500 ml-1">*</span>}
-                    </Label>
-                    <Input
-                      id="new-country"
-                      value={newEntry.country}
-                      onChange={(e) => handleNewEntryChange("country", e.target.value)}
-                      placeholder="Enter country"
-                      className={cn(
-                        "transition-all focus:ring-2 focus:ring-primary/20",
-                        validationErrors.country && "border-red-500 focus:ring-red-500"
-                      )}
-                    />
-                  </div>
-                </>
+              {newEntry.type !== "gap" && ( // Keep country for both education and work
+                <div className="space-y-2 mt-4" ref={el => formRefs.current.country = el}>
+                  <Label htmlFor="new-country" className="flex items-center">
+                    Country
+                    {validationErrors.country && <span className="text-red-500 ml-1">*</span>}
+                  </Label>
+                  <Input
+                    id="new-country"
+                    value={newEntry.country}
+                    onChange={(e) => handleNewEntryChange("country", e.target.value)}
+                    placeholder="Enter country"
+                    className={cn(
+                      "transition-all focus:ring-2 focus:ring-primary/20",
+                      validationErrors.country && "border-red-500 focus:ring-red-500"
+                    )}
+                  />
+                </div>
               )}
               
               <div className="grid gap-6 sm:grid-cols-2 mb-4 mt-4">
