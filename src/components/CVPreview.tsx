@@ -109,7 +109,10 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
               <p className="text-sm">Date of Birth: {formatDOB(personalInfo.dateOfBirth)}</p>
             )}
             {personalInfo.address && (
-              <p className="text-sm">{personalInfo.address}</p>
+              <p className="text-sm">
+                {personalInfo.address}
+                {personalInfo.postcode && `, ${personalInfo.postcode}`}
+              </p>
             )}
             {(personalInfo.email || personalInfo.phone) && (
               <p className="text-sm">

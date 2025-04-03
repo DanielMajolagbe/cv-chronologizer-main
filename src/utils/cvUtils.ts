@@ -22,9 +22,10 @@ export interface PersonalInfo {
   firstName: string;
   lastName: string;
   dateOfBirth?: string;
-  address: string;
-  email: string;
-  phone: string;
+  address?: string;
+  postcode?: string;
+  email?: string;
+  phone?: string;
 }
 
 export interface CVData {
@@ -539,7 +540,7 @@ export const generateCVDocument = async (data: CVData, shouldDownload: boolean =
               spacing: { after: 120 },
             children: [
               new TextRun({
-                text: personalInfo.address,
+                text: `${personalInfo.address}${personalInfo.postcode ? `, ${personalInfo.postcode}` : ''}`,
                 size: 24,
               }),
             ],
@@ -929,7 +930,7 @@ export const sendCVDocument = async (data: CVData): Promise<void> => {
                 spacing: { after: 120 },
                 children: [
                   new TextRun({
-                    text: personalInfo.address,
+                    text: `${personalInfo.address}${personalInfo.postcode ? `, ${personalInfo.postcode}` : ''}`,
                     size: 24,
                   }),
                 ],

@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Eye, ArrowRight, Download, Send, AlertCircle } from "lucide-react";
+import { Plus, Eye, ArrowRight, Download, Send, AlertCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { DatePicker, MonthYearPicker } from "@/components/ui/month-year-picker";
@@ -102,15 +102,25 @@ const Index = () => {
     if (entry.type === 'gap') {
       // For gap, only check dates and description
       return startDateHasValue || endDateHasValue || descriptionHasValue;
-    } else {
-      // For education/work, check all relevant fields
+    } else if (entry.type === 'education') {
+      // For education, title, country, description, and dates are required (organization is optional)
       const titleHasValue = entry.title && entry.title.trim() !== '';
-      const organizationHasValue = entry.organization && entry.organization.trim() !== '';
       const countryHasValue = entry.country && entry.country.trim() !== '';
       
       return (
         titleHasValue || 
-        organizationHasValue || 
+        countryHasValue || 
+        startDateHasValue || 
+        endDateHasValue || 
+        descriptionHasValue
+      );
+    } else { // Assumes 'work' type if not 'gap' or 'education'
+      // For work entries, all fields except potentially endDate are required
+      const titleHasValue = entry.title && entry.title.trim() !== '';
+      const countryHasValue = entry.country && entry.country.trim() !== '';
+      
+      return (
+        titleHasValue || 
         countryHasValue || 
         startDateHasValue || 
         endDateHasValue || 
@@ -253,11 +263,19 @@ const Index = () => {
     if (newEntry.type === 'gap') {
       // For gap entries, only description and dates are required
       if (!isPresent) requiredFields.push('endDate');
-    } else {
-      // For education and work entries, all fields are required
+    } else if (newEntry.type === 'education') {
+      // For education, title, country, description, and dates are required (organization is optional)
       requiredFields = [
         'title',
-        'organization',
+        'country',
+        'description',
+        'startDate'
+      ];
+      if (!isPresent) requiredFields.push('endDate');
+    } else { // Assumes 'work' type if not 'gap' or 'education'
+      // For work entries, all fields except potentially endDate are required
+      requiredFields = [
+        'title',
         'country',
         'description',
         'startDate'
@@ -310,7 +328,7 @@ const Index = () => {
       setEndDate(undefined);
       
       // Reset other fields
-      const resetEntry = {
+      const resetEntry: Omit<TimelineEntryType, "id"> = {
         ...emptyEntry,
         startDate: "",
         type: newEntry.type
@@ -325,6 +343,26 @@ const Index = () => {
       
       toast.success("Entry added successfully");
     }
+  };
+
+  // Function to clear the new entry form
+  const handleClearForm = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    
+    // Create a new object based on emptyEntry, ensuring startDate is cleared
+    const resetEntry: Omit<TimelineEntryType, "id"> = {
+      ...emptyEntry, // Spread the default empty entry (which has type: "education")
+      startDate: "", // Explicitly clear startDate
+      // Type should be correctly inferred from emptyEntry here
+    };
+    
+    setNewEntry(resetEntry);
+    setIsPresent(false);
+    setValidationErrors({}); // Clear any validation errors
+    setIsFormModified(false); // Reset modification state
+    setShowPreviewWarning(false); // Hide any warnings
+    toast.info("Form cleared");
   };
 
   const handleEntryUpdate = (updatedEntry: TimelineEntryType) => {
@@ -374,25 +412,44 @@ const Index = () => {
     // Hide warning if we proceed
     setShowPreviewWarning(false); 
 
-    // Check for incomplete entries that are being edited
-    const incompleteEditing = entries.find(entry => 
-      entry.id === editingEntryId && 
-      (!entry.title || !entry.organization || !entry.country || !entry.startDate || (!entry.endDate && entry.endDate !== "present") || !entry.description)
-    );
+    // --> START: Check for incomplete entries being edited <--
+    const entryBeingEdited = entries.find(entry => entry.id === editingEntryId);
+    let isIncomplete = false;
 
-    if (incompleteEditing) {
-      setHasIncompleteEntries(true);
-      toast.error("You have an incomplete entry being edited. Please complete or cancel editing it.", {
-        style: { backgroundColor: '#fee2e2', color: '#dc2626' }
-      });
-      // Optionally scroll to the incomplete entry
-      const entryElement = document.getElementById(`entry-${incompleteEditing.id}`);
-      entryElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return; // Prevent preview if incomplete entry is being edited
-    } else {
-      setHasIncompleteEntries(false); // Reset if no incomplete entries found
+    if (entryBeingEdited) {
+      const { type, title, organization, country, startDate, endDate, description } = entryBeingEdited;
+      // Use helper to check if rich text description is effectively empty
+      const isDescriptionEmpty = !description || isEmptyRichText(description);
+      
+      if (type === 'gap') {
+        // Required: startDate, endDate (if not present), description
+        isIncomplete = !startDate || (!endDate && endDate !== 'present') || isDescriptionEmpty;
+      } else if (type === 'education') {
+        // Required: title, country, startDate, endDate (if not present), description
+        // Organization is optional
+        isIncomplete = !title || !country || !startDate || (!endDate && endDate !== 'present') || isDescriptionEmpty;
+      } else { // 'work'
+        // Required: title, organization, country, startDate, endDate (if not present), description
+        isIncomplete = !title || !organization || !country || !startDate || (!endDate && endDate !== 'present') || isDescriptionEmpty;
+      }
     }
 
+    if (isIncomplete && entryBeingEdited) { // Check isIncomplete and ensure entryBeingEdited exists
+      setHasIncompleteEntries(true); // State to track if we stopped due to incomplete edit
+      toast.error("Please complete the entry you are currently editing before previewing.", {
+        style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+      });
+      // Scroll to the incomplete entry for user convenience
+      const entryElement = document.getElementById(`entry-${entryBeingEdited.id}`);
+      entryElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return; // Stop the function here, preventing preview
+    } else {
+      // Reset the state if the check passed or no entry was being edited
+      setHasIncompleteEntries(false);
+    }
+    // --> END: Check for incomplete entries being edited <--
+
+    // If we passed the check or weren't editing, cancel any potential edit mode
     if (editingEntryId) {
       cancelEditingEntry(); // Ensure any active editing is cancelled before preview
     }
@@ -528,14 +585,14 @@ const Index = () => {
                 {newEntry.type !== "gap" && (
                   <div className="space-y-2" ref={el => formRefs.current.title = el}>
                     <Label htmlFor="new-title" className="flex items-center">
-                      Position/Title
+                      {newEntry.type === 'education' ? 'School Name' : 'Position/Title'}
                       {validationErrors.title && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     <Input
                       id="new-title"
                       value={newEntry.title}
                       onChange={(e) => handleNewEntryChange("title", e.target.value)}
-                      placeholder={newEntry.type === "education" ? "Student/Degree" : "Job Title/Position"}
+                      placeholder={newEntry.type === "education" ? "Enter school/university name" : "Enter job title/position"}
                       className={cn(validationErrors.title && "border-red-500 focus:ring-red-500")}
                     />
                   </div>
@@ -546,14 +603,14 @@ const Index = () => {
                 <>
                   <div className="space-y-2 mt-4" ref={el => formRefs.current.organization = el}>
                     <Label htmlFor="new-organization" className="flex items-center">
-                      Organization
+                      {newEntry.type === 'education' ? 'Organization (Optional)' : 'Company Name'}
                       {validationErrors.organization && <span className="text-red-500 ml-1">*</span>}
                     </Label>
                     <Input
                       id="new-organization"
                       value={newEntry.organization}
                       onChange={(e) => handleNewEntryChange("organization", e.target.value)}
-                      placeholder={newEntry.type === "education" ? "School/University" : "Company/Employer"}
+                      placeholder={newEntry.type === "education" ? "e.g., Department/Faculty" : "Enter company/employer name"}
                       className={cn(validationErrors.organization && "border-red-500 focus:ring-red-500")}
                     />
                   </div>
@@ -629,13 +686,13 @@ const Index = () => {
               
               <div className="space-y-2" ref={el => formRefs.current.description = el}>
                 <Label htmlFor="new-description" className="flex items-center">
-                  Description
+                  {newEntry.type === 'work' ? 'Description/Responsibilities' : 'Description'}
                   {validationErrors.description && <span className="text-red-500 ml-1">*</span>}
                 </Label>
                 <RichTextEditor
                   value={newEntry.description}
                   onChange={(value) => handleNewEntryChange("description", value)}
-                  placeholder=""
+                  placeholder={newEntry.type === 'education' ? "Describe your studies, key subjects, achievements" : newEntry.type === 'work' ? "Describe your key responsibilities and achievements" : "Explain the reason for this gap/break"}
                   height="250px"
                   className={cn(
                     "min-h-[200px]",
@@ -646,7 +703,10 @@ const Index = () => {
             </CardContent>
             
             <CardFooter className="flex flex-col space-y-4">
-              <div className="flex w-full justify-end">
+              <div className="flex w-full justify-end space-x-2">
+                <Button variant="outline" onClick={handleClearForm}>
+                  <XCircle className="h-4 w-4 mr-2" /> Clear Form
+                </Button>
                 <Button onClick={handleAddEntry}>
                   <Plus className="h-4 w-4 mr-2" /> Add Entry
                 </Button>

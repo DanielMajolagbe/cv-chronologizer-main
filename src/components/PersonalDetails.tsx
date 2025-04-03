@@ -87,6 +87,19 @@ const PersonalDetails = ({ personalInfo, onChange }: PersonalDetailsProps) => {
             />
           </div>
           
+          <div className="space-y-2">
+            <Label htmlFor="postcode" className="text-sm font-medium">
+              Postcode
+            </Label>
+            <Input
+              id="postcode"
+              value={personalInfo.postcode}
+              onChange={(e) => handleChange("postcode", e.target.value)}
+              className="transition-all focus:ring-2 focus:ring-primary/20"
+              placeholder="Enter your postcode"
+            />
+          </div>
+          
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="address" className="text-sm font-medium">
               Address
