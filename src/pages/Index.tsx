@@ -35,6 +35,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import "@/styles/animations.css";
 
+// Helper function to check for effectively empty rich text content
+const isEmptyRichText = (value: string): boolean => {
+  if (!value) return true;
+  const trimmed = value.trim();
+  // Consider variations of empty paragraph tags or just breaks
+  return trimmed === '' || trimmed === '<p></p>' || trimmed === '<p><br></p>' || trimmed === '<p><br/></p>';
+};
+
 const emptyEntry: Omit<TimelineEntryType, "id"> = {
   type: "education",
   title: "",
@@ -81,15 +89,34 @@ const Index = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
   const formRefs = useRef<Record<string, HTMLElement | null>>({});
   const [isFormModified, setIsFormModified] = useState(false);
-  const [showReminderMessage, setShowReminderMessage] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showPreviewWarning, setShowPreviewWarning] = useState(false);
   const [hasIncompleteEntries, setHasIncompleteEntries] = useState(false);
 
-  const checkFormHasValues = (entry: Omit<TimelineEntryType, "id">) => {
-    return Object.values(entry).some(val => 
-      typeof val === 'string' && val.trim() !== '' && 
-      !['education', 'work', 'gap'].includes(val)
-    );
+  // Refactored function to check if the form has actual user input
+  const checkFormHasValues = (entry: Omit<TimelineEntryType, "id">, isPresentChecked: boolean) => {
+    const descriptionHasValue = entry.description && !isEmptyRichText(entry.description);
+    const startDateHasValue = entry.startDate && entry.startDate.trim() !== '';
+    // End date has value if it's not empty, not 'present', and the 'present' switch isn't checked
+    const endDateHasValue = entry.endDate && entry.endDate.trim() !== '' && entry.endDate !== 'present' && !isPresentChecked;
+
+    if (entry.type === 'gap') {
+      // For gap, only check dates and description
+      return startDateHasValue || endDateHasValue || descriptionHasValue;
+    } else {
+      // For education/work, check all relevant fields
+      const titleHasValue = entry.title && entry.title.trim() !== '';
+      const organizationHasValue = entry.organization && entry.organization.trim() !== '';
+      const countryHasValue = entry.country && entry.country.trim() !== '';
+      
+      return (
+        titleHasValue || 
+        organizationHasValue || 
+        countryHasValue || 
+        startDateHasValue || 
+        endDateHasValue || 
+        descriptionHasValue
+      );
+    }
   };
 
   const handleNewEntryChange = (field: keyof TimelineEntryType, value: string) => {
@@ -105,12 +132,12 @@ const Index = () => {
       [field]: value
     };
     
-    // Check if any field has a value
-    const hasValue = checkFormHasValues(updatedEntry);
-    
-    // Only show reminder if the form has actual data
+    // Check if any field has a value using the updated function
+    const hasValue = checkFormHasValues(updatedEntry, isPresent);
     setIsFormModified(hasValue);
-    setShowReminderMessage(hasValue);
+    if (!hasValue) {
+      setShowPreviewWarning(false); // Hide warning if form becomes empty
+    }
   };
 
   const handleNewEntryTypeChange = (value: string) => {
@@ -139,10 +166,12 @@ const Index = () => {
     
     setNewEntry(updatedEntry);
     
-    // Check if the form has any values now
-    const hasValue = checkFormHasValues(updatedEntry);
+    // Check if the form has any values now using the updated function
+    const hasValue = checkFormHasValues(updatedEntry, isPresent);
     setIsFormModified(hasValue);
-    setShowReminderMessage(hasValue);
+    if (!hasValue) {
+      setShowPreviewWarning(false); // Hide warning if form becomes empty
+    }
   };
 
   const handleStartDateChange = (date: Date | undefined) => {
@@ -160,10 +189,12 @@ const Index = () => {
     
     setNewEntry(updatedEntry);
     
-    // Update form modified state
-    const hasValue = checkFormHasValues(updatedEntry);
+    // Update form modified state using the updated function
+    const hasValue = checkFormHasValues(updatedEntry, isPresent);
     setIsFormModified(hasValue);
-    setShowReminderMessage(hasValue);
+    if (!hasValue) {
+      setShowPreviewWarning(false); // Hide warning if form becomes empty
+    }
   };
 
   const handleEndDateChange = (date: Date | undefined) => {
@@ -181,10 +212,12 @@ const Index = () => {
     
     setNewEntry(updatedEntry);
     
-    // Update form modified state
-    const hasValue = checkFormHasValues(updatedEntry);
+    // Update form modified state using the updated function
+    const hasValue = checkFormHasValues(updatedEntry, isPresent);
     setIsFormModified(hasValue);
-    setShowReminderMessage(hasValue);
+    if (!hasValue) {
+      setShowPreviewWarning(false); // Hide warning if form becomes empty
+    }
   };
 
   const handlePresentToggle = (checked: boolean) => {
@@ -204,10 +237,12 @@ const Index = () => {
     
     setNewEntry(updatedEntry);
     
-    // Update form modified state
-    const hasValue = checkFormHasValues(updatedEntry);
+    // Update form modified state using the updated function, passing the new 'checked' state
+    const hasValue = checkFormHasValues(updatedEntry, checked);
     setIsFormModified(hasValue);
-    setShowReminderMessage(hasValue);
+    if (!hasValue) {
+      setShowPreviewWarning(false); // Hide warning if form becomes empty
+    }
   };
 
   const handleAddEntry = () => {
@@ -286,7 +321,7 @@ const Index = () => {
       
       // Reset form modification state and hide reminder
       setIsFormModified(false);
-      setShowReminderMessage(false);
+      setShowPreviewWarning(false);
       
       toast.success("Entry added successfully");
     }
@@ -326,38 +361,42 @@ const Index = () => {
 
   const gaps = showGaps ? identifyGaps(entries) : [];
 
-  const handleFinishPreview = () => {
-    // Check if there are any incomplete entries in the form
-    if (isFormModified && checkFormHasValues(newEntry)) {
-      // There are unsaved changes in the form with actual content
-      setHasIncompleteEntries(true);
-      
-      // Shake the button with a timeout to stop the animation
-      const previewButton = document.querySelector('[data-finish-preview]');
-      if (previewButton) {
-        previewButton.classList.add('animate-shake');
-        setTimeout(() => {
-          previewButton.classList.remove('animate-shake');
-        }, 500);
-      }
-      
-      // Scroll to the form
-      formRefs.current.type?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      
-      // Show error toast
-      toast.error("Please complete and add your current entry before proceeding", {
-        style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+  const handleFinishAndPreview = () => {
+    // If form is modified but no entries exist yet, show warning instead of proceeding
+    if (entries.length === 0 && isFormModified) {
+      setShowPreviewWarning(true);
+      toast.warning("Please add your current entry first or clear the form.", {
+        style: { backgroundColor: '#fef3c7', color: '#ca8a04' }
       });
-      
-      return;
+      return; // Stop execution here
     }
     
-    // If form is not modified or is empty, show confirmation dialog
-    setShowConfirmDialog(true);
-  };
-  
-  const confirmPreview = () => {
-    setShowConfirmDialog(false);
+    // Hide warning if we proceed
+    setShowPreviewWarning(false); 
+
+    // Check for incomplete entries that are being edited
+    const incompleteEditing = entries.find(entry => 
+      entry.id === editingEntryId && 
+      (!entry.title || !entry.organization || !entry.country || !entry.startDate || (!entry.endDate && entry.endDate !== "present") || !entry.description)
+    );
+
+    if (incompleteEditing) {
+      setHasIncompleteEntries(true);
+      toast.error("You have an incomplete entry being edited. Please complete or cancel editing it.", {
+        style: { backgroundColor: '#fee2e2', color: '#dc2626' }
+      });
+      // Optionally scroll to the incomplete entry
+      const entryElement = document.getElementById(`entry-${incompleteEditing.id}`);
+      entryElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return; // Prevent preview if incomplete entry is being edited
+    } else {
+      setHasIncompleteEntries(false); // Reset if no incomplete entries found
+    }
+
+    if (editingEntryId) {
+      cancelEditingEntry(); // Ensure any active editing is cancelled before preview
+    }
+    
     togglePreviewMode();
   };
 
@@ -619,11 +658,11 @@ const Index = () => {
 
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-2 justify-between items-center">
-            <Button variant="outline" onClick={handleFinishPreview} data-finish-preview>
+            <Button variant="outline" onClick={handleFinishAndPreview} data-finish-preview>
               <Eye className="h-4 w-4 mr-2" /> Finish & Preview
             </Button>
             
-            {showReminderMessage && (
+            {showPreviewWarning && (
               <div className="flex items-center bg-amber-50 text-amber-700 p-2 px-3 rounded-md animate-pulse-custom">
                 <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
                 <span className="text-sm font-medium">Don't forget to add your entry before proceeding!</span>
@@ -634,22 +673,6 @@ const Index = () => {
 
         <div className="h-20"></div>
       </div>
-      
-      {/* Confirmation Dialog */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you ready to preview your CV?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Have you added all your education and work experience entries? You can always come back to add more.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>No, I need to add more</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmPreview}>Yes, I'm ready</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
