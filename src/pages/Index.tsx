@@ -565,7 +565,7 @@ const Index = () => {
             className="h-16 mx-auto mb-3"
           />
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Naomicare Agency CV Builder
+            Royacare Agency CV Builder
           </h1>
           <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto">
             Build your chronological CV easily, ensuring all entries follow each other in sequence from age 1-11 onwards.
