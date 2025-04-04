@@ -340,6 +340,7 @@ const Index = () => {
       // Reset form modification state and hide reminder
       setIsFormModified(false);
       setShowPreviewWarning(false);
+      setHasIncompleteEntries(false); // Also reset incomplete entries state
       
       toast.success("Entry added successfully");
     }
@@ -366,10 +367,19 @@ const Index = () => {
   };
 
   const handleEntryUpdate = (updatedEntry: TimelineEntryType) => {
+    // Check if the entry is still incomplete after the update
+    const stillIncomplete = isEntryIncomplete(updatedEntry);
+    
     const success = updateEntry(updatedEntry.id, updatedEntry);
     if (success) {
+      setHasIncompleteEntries(false); // Reset incomplete entries state
+      setShowPreviewWarning(false); // Hide warning when successfully updated
       cancelEditingEntry();
       toast.success("Entry updated successfully");
+    } else {
+      // If update fails, keep the warning visible if the entry is incomplete
+      setHasIncompleteEntries(stillIncomplete);
+      setShowPreviewWarning(stillIncomplete);
     }
   };
 
@@ -400,19 +410,61 @@ const Index = () => {
   const gaps = showGaps ? identifyGaps(entries) : [];
 
   const handleFinishAndPreview = () => {
-    // If form is modified but no entries exist yet, show warning instead of proceeding
-    if (entries.length === 0 && isFormModified) {
+    // Check if the new entry form has any data entered but is incomplete
+    let newEntryIncomplete = false;
+    
+    if (isFormModified) {
+      // Check if the current new entry has all required fields
+      const errors: Record<string, boolean> = {};
+      let requiredFields: (keyof TimelineEntryType)[] = ['description', 'startDate'];
+
+      if (newEntry.type === 'gap') {
+        // For gap entries, only description and dates are required
+        if (!isPresent) requiredFields.push('endDate');
+      } else if (newEntry.type === 'education') {
+        // For education, title, country, description, and dates are required
+        requiredFields = [
+          'title',
+          'country',
+          'description',
+          'startDate'
+        ];
+        if (!isPresent) requiredFields.push('endDate');
+      } else { // Assumes 'work' type
+        // For work entries, all fields are required
+        requiredFields = [
+          'title',
+          'organization',
+          'country',
+          'description',
+          'startDate'
+        ];
+        if (!isPresent) requiredFields.push('endDate');
+      }
+
+      // Check if any required field is missing
+      requiredFields.forEach(field => {
+        if (!newEntry[field] || 
+            (field === 'description' && isEmptyRichText(newEntry[field] as string))) {
+          errors[field] = true;
+        }
+      });
+
+      if (Object.keys(errors).length > 0) {
+        newEntryIncomplete = true;
+      }
+    }
+
+    // If form is modified but incomplete, show warning
+    if (newEntryIncomplete) {
       setShowPreviewWarning(true);
-      toast.warning("Please add your current entry first or clear the form.", {
+      toast.warning("Please complete your current entry before previewing.", {
         style: { backgroundColor: '#fef3c7', color: '#ca8a04' }
       });
       return; // Stop execution here
     }
     
-    // Hide warning if we proceed
-    setShowPreviewWarning(false); 
-
-    // --> START: Check for incomplete entries being edited <--
+    // Existing check for entries being edited
     const entryBeingEdited = entries.find(entry => entry.id === editingEntryId);
     let isIncomplete = false;
 
@@ -426,7 +478,6 @@ const Index = () => {
         isIncomplete = !startDate || (!endDate && endDate !== 'present') || isDescriptionEmpty;
       } else if (type === 'education') {
         // Required: title, country, startDate, endDate (if not present), description
-        // Organization is optional
         isIncomplete = !title || !country || !startDate || (!endDate && endDate !== 'present') || isDescriptionEmpty;
       } else { // 'work'
         // Required: title, organization, country, startDate, endDate (if not present), description
@@ -434,27 +485,64 @@ const Index = () => {
       }
     }
 
-    if (isIncomplete && entryBeingEdited) { // Check isIncomplete and ensure entryBeingEdited exists
-      setHasIncompleteEntries(true); // State to track if we stopped due to incomplete edit
+    if (isIncomplete && entryBeingEdited) {
+      setHasIncompleteEntries(true);
+      setShowPreviewWarning(true);
       toast.error("Please complete the entry you are currently editing before previewing.", {
         style: { backgroundColor: '#fee2e2', color: '#dc2626' }
       });
-      // Scroll to the incomplete entry for user convenience
       const entryElement = document.getElementById(`entry-${entryBeingEdited.id}`);
       entryElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return; // Stop the function here, preventing preview
+      return;
     } else {
-      // Reset the state if the check passed or no entry was being edited
       setHasIncompleteEntries(false);
+      setShowPreviewWarning(false);
     }
-    // --> END: Check for incomplete entries being edited <--
 
-    // If we passed the check or weren't editing, cancel any potential edit mode
     if (editingEntryId) {
-      cancelEditingEntry(); // Ensure any active editing is cancelled before preview
+      cancelEditingEntry();
     }
     
     togglePreviewMode();
+  };
+
+  // Add a function to check if an entry is incomplete
+  const isEntryIncomplete = (entry: TimelineEntryType): boolean => {
+    const { type, title, organization, country, startDate, endDate, description } = entry;
+    // Use helper to check if rich text description is effectively empty
+    const isDescriptionEmpty = !description || isEmptyRichText(description);
+    
+    if (type === 'gap') {
+      // Required: startDate, endDate (if not present), description
+      return !startDate || (!endDate && endDate !== 'present') || isDescriptionEmpty;
+    } else if (type === 'education') {
+      // Required: title, country, startDate, endDate (if not present), description
+      // Organization is optional
+      return !title || !country || !startDate || (!endDate && endDate !== 'present') || isDescriptionEmpty;
+    } else { // 'work'
+      // Required: title, organization, country, startDate, endDate (if not present), description
+      return !title || !organization || !country || !startDate || (!endDate && endDate !== 'present') || isDescriptionEmpty;
+    }
+  };
+
+  // Wrap the startEditingEntry function to check for incomplete entries
+  const handleStartEditing = (entryId: string) => {
+    const entryToEdit = entries.find(entry => entry.id === entryId);
+    if (entryToEdit && isEntryIncomplete(entryToEdit)) {
+      setHasIncompleteEntries(true);
+      setShowPreviewWarning(true);
+    } else {
+      setHasIncompleteEntries(false);
+      setShowPreviewWarning(false);
+    }
+    startEditingEntry(entryId);
+  };
+
+  // Update the cancelEditingEntry wrapper
+  const handleCancelEditing = () => {
+    setHasIncompleteEntries(false);
+    setShowPreviewWarning(isFormModified); // Only show warning if new entry form is modified
+    cancelEditingEntry();
   };
 
   if (isPreviewMode) {
@@ -523,8 +611,8 @@ const Index = () => {
                       isEditing={editingEntryId === entry.id}
                       onSave={handleEntryUpdate}
                       onDelete={() => removeEntry(entry.id)}
-                      onEdit={() => startEditingEntry(entry.id)}
-                      onCancel={cancelEditingEntry}
+                      onEdit={() => handleStartEditing(entry.id)}
+                      onCancel={handleCancelEditing}
                     />
                   ))}
               </div>
@@ -722,10 +810,14 @@ const Index = () => {
               <Eye className="h-4 w-4 mr-2" /> Finish & Preview
             </Button>
             
-            {showPreviewWarning && (
+            {(showPreviewWarning || hasIncompleteEntries) && (
               <div className="flex items-center bg-amber-50 text-amber-700 p-2 px-3 rounded-md animate-pulse-custom">
                 <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-                <span className="text-sm font-medium">Don't forget to add your entry before proceeding!</span>
+                <span className="text-sm font-medium">
+                  {hasIncompleteEntries 
+                    ? "Please complete the entry you are currently editing!"
+                    : "Don't forget to add your entry before proceeding!"}
+                </span>
               </div>
             )}
           </div>
