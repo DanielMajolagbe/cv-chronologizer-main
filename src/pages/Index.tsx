@@ -33,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-// import "@/styles/animations.css";
+
 
 // Helper function to check for effectively empty rich text content
 const isEmptyRichText = (value: string): boolean => {
@@ -455,13 +455,13 @@ const Index = () => {
       }
     }
 
-    // If form is modified but incomplete, show warning
-    if (newEntryIncomplete) {
+    // If form is modified, show warning and block preview completely
+    if (isFormModified) {
       setShowPreviewWarning(true);
-      toast.warning("Please complete your current entry before previewing.", {
+      toast.warning("Please add your current entry before previewing.", {
         style: { backgroundColor: '#fef3c7', color: '#ca8a04' }
       });
-      return; // Stop execution here
+      return; // Stop execution here - don't allow preview until form is added or cleared
     }
     
     // Existing check for entries being edited
@@ -560,12 +560,12 @@ const Index = () => {
       <div className="max-w-4xl mx-auto">
         <header className="text-center mb-10">
           <img 
-            src="https://royacare-agency.vercel.app/_next/image?url=%2Froya.png&w=256&q=75" 
+            src="" 
             alt="" 
             className="h-16 mx-auto mb-3"
           />
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Royacare Agency CV Builder
+            Naomicare Agency CV Builder
           </h1>
           <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto">
             Build your chronological CV easily, ensuring all entries follow each other in sequence from age 1-11 onwards.
@@ -806,7 +806,11 @@ const Index = () => {
 
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-2 justify-between items-center">
-            <Button variant="outline" onClick={handleFinishAndPreview} data-finish-preview>
+            <Button 
+              variant="outline" 
+              onClick={handleFinishAndPreview}
+              data-finish-preview
+            >
               <Eye className="h-4 w-4 mr-2" /> Finish & Preview
             </Button>
             
@@ -816,7 +820,7 @@ const Index = () => {
                 <span className="text-sm font-medium">
                   {hasIncompleteEntries 
                     ? "Please complete the entry you are currently editing!"
-                    : "Don't forget to add your entry before proceeding!"}
+                    : "You must click 'Add Entry' to save your changes before proceeding!"}
                 </span>
               </div>
             )}
