@@ -568,7 +568,9 @@ const Index = () => {
             Royacare Agency CV Builder
           </h1>
           <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto">
-            Build your chronological CV easily, ensuring all entries follow each other in sequence from age 1-11 onwards.
+            Build your chronological CV easily, ensuring all entries follow each other in sequence from earliest to present 
+
+First entry must be when you are between age 1-11 i.e Primary/Secondary School
           </p>
         </header>
 
