@@ -136,7 +136,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
                       </span>{" "}
                       <span className="font-medium">
                         {entry.organization}
-                        {entry.country && `, ${entry.country}`}
+                        {entry.country && ` ${entry.country}`}
                       </span>
                     </div>
                     <div className="text-sm italic">
