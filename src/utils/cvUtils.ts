@@ -827,7 +827,7 @@ export const sendCVDocument = async (data: CVData): Promise<void> => {
     console.log('Preparing CV for email submission...');
     const { personalInfo, entries } = data;
     
-    // Create document for Word format
+    // Create document for Word format with minimal styling for faster generation
     const doc = new Document({
       creator: "CV Chronologizer",
       title: `${personalInfo.firstName} ${personalInfo.lastName} CV`,
@@ -867,14 +867,14 @@ export const sendCVDocument = async (data: CVData): Promise<void> => {
           properties: {
             page: {
               margin: {
-                top: 1440, // 1 inch
+                top: 1440,
                 right: 1440,
                 bottom: 1440,
                 left: 1440
               },
               size: {
-                width: 12240, // 8.5 inches
-                height: 15840, // 11 inches
+                width: 12240,
+                height: 15840,
               },
             },
           },
@@ -909,7 +909,6 @@ export const sendCVDocument = async (data: CVData): Promise<void> => {
               ],
             }),
             
-            // Only add DOB if it exists
             ...(personalInfo.dateOfBirth ? [
               new Paragraph({
                 alignment: AlignmentType.CENTER,
@@ -923,7 +922,6 @@ export const sendCVDocument = async (data: CVData): Promise<void> => {
               }),
             ] : []),
             
-            // Only add address if it exists
             ...(personalInfo.address ? [
               new Paragraph({
                 alignment: AlignmentType.CENTER,
@@ -937,7 +935,6 @@ export const sendCVDocument = async (data: CVData): Promise<void> => {
               }),
             ] : []),
             
-            // Only add contact info if either exists
             ...((personalInfo.email || personalInfo.phone) ? [
               new Paragraph({
                 alignment: AlignmentType.CENTER,
@@ -966,58 +963,63 @@ export const sendCVDocument = async (data: CVData): Promise<void> => {
               ],
             }),
             
-            // Add timeline entries
             ...entries
               .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
               .flatMap(entry => {
                 const startDate = formatDateForDisplay(entry.startDate);
-                const endDate = formatDateForDisplay(entry.endDate);
-                const entryType = entry.type === "education" 
-                  ? "Education" 
-                  : entry.type === "work" 
-                    ? "Work Experience" 
-                    : "Gap/Break";
+                const endDate = entry.endDate === "present" ? "Present" : formatDateForDisplay(entry.endDate);
                 
                 return [
                   new Paragraph({
-                    spacing: { before: 240, after: 120 },
-                    children: [
-                      new TextRun({
-                        text: `${entryType}: `,
-                        bold: true,
-                        size: 24,
-                      }),
-                      new TextRun({
-                        text: `${entry.organization}${entry.country ? `, ${entry.country}` : ''}`,
-                        bold: true,
-                        size: 24,
-                      }),
-                    ],
-                  }),
-                  
-                  new Paragraph({
-                    spacing: { before: 0, after: 120 },
+                    alignment: AlignmentType.LEFT,
+                    spacing: { before: 120, after: 120 },
                     children: [
                       new TextRun({
                         text: `${startDate} - ${endDate}`,
-                        italics: true,
+                        bold: true,
                         size: 24,
                       }),
                     ],
                   }),
                   
                   new Paragraph({
-                    spacing: { before: 0, after: 120 },
+                    alignment: AlignmentType.LEFT,
+                    spacing: { after: 60 },
                     children: [
                       new TextRun({
                         text: entry.title,
-                        italics: true,
+                        bold: true,
                         size: 24,
                       }),
                     ],
                   }),
                   
-                  // Only add description if it exists
+                  ...(entry.organization ? [
+                    new Paragraph({
+                      alignment: AlignmentType.LEFT,
+                      spacing: { after: 60 },
+                      children: [
+                        new TextRun({
+                          text: entry.organization,
+                          size: 24,
+                        }),
+                      ],
+                    }),
+                  ] : []),
+                  
+                  ...(entry.country ? [
+                    new Paragraph({
+                      alignment: AlignmentType.LEFT,
+                      spacing: { after: 60 },
+                      children: [
+                        new TextRun({
+                          text: entry.country,
+                          size: 24,
+                        }),
+                      ],
+                    }),
+                  ] : []),
+                  
                   ...(entry.description ? convertHtmlToDocumentElements(entry.description) : []),
                 ];
               }),
@@ -1027,20 +1029,14 @@ export const sendCVDocument = async (data: CVData): Promise<void> => {
     });
 
     console.log('Generating Word document blob...');
-    // Create a blob with the document, but without auto-download
     const blob = await Packer.toBlob(doc);
-    
-    // Convert blob to ArrayBuffer to ensure proper binary data handling
     const arrayBuffer = await blob.arrayBuffer();
-    
-    // Create file from ArrayBuffer for more reliable binary handling
     const fileName = `${personalInfo.firstName}_${personalInfo.lastName}_CV.docx`;
     const file = new File([arrayBuffer], fileName, { 
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       lastModified: new Date().getTime()
     });
     
-    // Send to server
     console.log('Sending CV document to server...');
     await sendCV(file, personalInfo.firstName, personalInfo.lastName);
     console.log('CV sent successfully');

@@ -64,28 +64,21 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
       return;
     }
 
-    // Show immediate feedback to the user
-    toast.success(`CV Submitted Successfully!`);
-    setIsButtonDisabled(true);
-    localStorage.setItem('lastSubmissionTime', String(Date.now()));
-    
-    // Start the actual sending process in the background
     setIsSending(true);
     
-    // Perform the actual submission in the background
-    setTimeout(async () => {
-      try {
-        console.log('Sending CV for', personalInfo.firstName, personalInfo.lastName);
-        await sendCVDocument(data);
-        console.log('CV sent successfully');
-      } catch (error) {
-        console.error('Error sending CV:', error);
-        // We won't show error toast since we already told the user it was successful
-        // This is just for background error logging
-      } finally {
-        setIsSending(false);
-      }
-    }, 100);
+    try {
+      console.log('Sending CV for', personalInfo.firstName, personalInfo.lastName);
+      await sendCVDocument(data);
+      console.log('CV sent successfully');
+      toast.success("CV Submitted Successfully!");
+      setIsButtonDisabled(true);
+      localStorage.setItem('lastSubmissionTime', String(Date.now()));
+    } catch (error) {
+      console.error('Error sending CV:', error);
+      toast.error("Failed to submit CV. Kindly Click Back to editor, refresh your internet connection and re-submit.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -162,7 +155,7 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
             {isSending ? (
               <>
                 <Check className="mr-2 h-4 w-4 text-green-600" />
-                CV Submitted
+                Submitting...
               </>
             ) : isButtonDisabled ? (
               <>
