@@ -6,7 +6,7 @@ cv-chronologizer-main
 ├─ bun.lockb
 ├─ components.json
 ├─ eslint.config.js
-├─ index.html
+├─ index.htmlsdsd
 ├─ package-lock.json
 ├─ package.json
 ├─ pages
