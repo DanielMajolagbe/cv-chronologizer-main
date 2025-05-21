@@ -1,7 +1,8 @@
 
 
 cv-chronologizer-main
-├─ .env
+├─ .en
+sdusddsio
 ├─ api
 ├─ bun.lockb
 ├─ components.json
