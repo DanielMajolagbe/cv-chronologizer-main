@@ -118,11 +118,11 @@ const CVPreview = ({ data, onBack, onDownload }: CVPreviewProps) => {
           
           <div>
             <h3 className="text-lg font-semibold mb-3">Chronological History</h3>
-            <div className="space-y-4">
+            <div className="space-y-8">
               {entries
                 .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
                 .map((entry) => (
-                  <div key={entry.id} className="border-b pb-3">
+                  <div key={entry.id} className="border-b pb-6">
                     <div>
                       <span className="font-medium">
                         {entry.type === "education" ? "Education" : entry.type === "work" ? "Work Experience" : "Gap/Break"}:

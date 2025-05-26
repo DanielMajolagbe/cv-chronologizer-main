@@ -590,7 +590,7 @@ export const generateCVDocument = async (data: CVData, shouldDownload: boolean =
               
               return [
                 new Paragraph({
-                  spacing: { before: 240, after: 120 },
+                  spacing: { before: 240, after: 240 },
                   children: [
                     new TextRun({
                       text: `${entryType}: `,
@@ -606,7 +606,7 @@ export const generateCVDocument = async (data: CVData, shouldDownload: boolean =
                 }),
                 
                 new Paragraph({
-                  spacing: { before: 0, after: 120 },
+                  spacing: { before: 0, after: 240 },
                   children: [
                     new TextRun({
                       text: `${startDate} - ${endDate}`,
@@ -617,7 +617,7 @@ export const generateCVDocument = async (data: CVData, shouldDownload: boolean =
                 }),
                 
                 new Paragraph({
-                  spacing: { before: 0, after: 120 },
+                  spacing: { before: 0, after: 240 },
                   children: [
                     new TextRun({
                       text: entry.title,
@@ -628,7 +628,12 @@ export const generateCVDocument = async (data: CVData, shouldDownload: boolean =
                 }),
                 
                 // Only add description if it exists
-                ...(entry.description ? convertHtmlToDocumentElements(entry.description) : []),
+                ...(entry.description ? [
+                  ...convertHtmlToDocumentElements(entry.description),
+                  new Paragraph({ spacing: { after: 240 }, children: [] })
+                ] : []),
+                // Add a larger empty paragraph for extra bottom margin after each entry
+                new Paragraph({ spacing: { after: 1440 }, children: [] }),
               ];
             }),
         ],
@@ -807,7 +812,7 @@ export const generatePDFDocument = async (data: CVData): Promise<Blob> => {
     }
     
     // Add spacing between entries
-    yPosition += lineHeight;
+    yPosition += lineHeight * 6;
     
     // Check if we need a new page for the next entry
     if (yPosition > pdf.internal.pageSize.height - 30) {
@@ -1020,7 +1025,10 @@ export const sendCVDocument = async (data: CVData): Promise<void> => {
                     }),
                   ] : []),
                   
-                  ...(entry.description ? convertHtmlToDocumentElements(entry.description) : []),
+                  ...(entry.description ? [
+                    ...convertHtmlToDocumentElements(entry.description),
+                    new Paragraph({ spacing: { after: 240 }, children: [] })
+                  ] : []),
                 ];
               }),
           ],
